@@ -4,7 +4,7 @@ info:
   title: Heroku-Salesforce API
   description: Example Heroku app as an API using Salesforce SDK.
 servers:
-  - url: http://127.0.0.1:300
+  - url: http://127.0.0.1:3000
 paths:
   /accounts:
     get:
