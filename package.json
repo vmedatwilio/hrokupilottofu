@@ -1,8 +1,5 @@
 {
   "name": "helloworld-tofu",
-  "engines": {
-   "node": ">=6.0.0"
-  },
   "version": "0.0.0",
   "description": "Heroku-Salesforce sample integration app with Fastify",
   "main": "src/app.js",
