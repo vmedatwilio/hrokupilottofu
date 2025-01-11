@@ -39,10 +39,6 @@ module.exports = async function (fastify, opts) {
         dir: path.join(__dirname, 'routes'),
         options: Object.assign({}, opts)
     })
-
-    // Dynamically set the port
-    const port = process.env.PORT || 3000; // Defaults to 3000 if PORT is not set
-    await fastify.listen(port, '0.0.0.0');  // Listen on all network interfaces
 }
 
 module.exports.options = options
