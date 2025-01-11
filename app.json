@@ -1,0 +1,36 @@
+{
+  "name": "Heroku-Salesforce API Fastify App",
+  "description": "Heroku-Salesforce sample integration app with Fastify.",
+  "keywords": [
+  ],
+  "scripts": {
+  },
+  "env": {
+    "APP_BASE": {
+      "description": "REMOVEME: Only need for testing",
+      "value": "salesforce/javascript/fastify"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "standard-1x"
+    }
+  },
+  "addons": [
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/lstoll/heroku-buildpack-monorepo"
+    },
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "environments": {
+    "test": {
+      "scripts": {
+      }
+    }
+  }
+}

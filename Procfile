@@ -1,0 +1,1 @@
+web: APP_PORT=3000 heroku-integration-service-mesh npm start
