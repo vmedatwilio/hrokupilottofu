@@ -6,6 +6,32 @@ info:
 servers:
   - url: http://127.0.0.1:3000
 paths:
+  /favicon.ico:
+    get:
+      operationId: GetAccounts
+      description: Returns list of array of Accounts
+      responses:
+        '200':
+          description: Successfully returned a list of Accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DeveloperError'
+        '503':
+          $ref: '#/components/responses/UnknownError'
   /accounts:
     get:
       operationId: GetAccounts
