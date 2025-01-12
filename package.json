@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "tap \"test/**/*.test.js\"",
-    "start": "fastify start -a 0.0.0.0 -l debug src/app.js",
+    "start": "NODE_NO_WARNINGS=1 fastify start -a 0.0.0.0 -l debug src/app.js",
     "dev": "fastify start -w -l debug -d -P src/app.js"
   },
   "keywords": [],
