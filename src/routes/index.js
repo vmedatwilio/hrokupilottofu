@@ -283,7 +283,38 @@ module.exports = async function (fastify, opts) {
                 return reply.status(500).send({ error: e.message });
             }
         } else {
-            return reply.status(500).send({ error: 'Salesforce Org not configured' });
+            
+            const org = context.org;
+            logger.info(`Querying all Activities for AccountId: ${accountId} for last 4 years...`);
+            try {
+                const query = `
+                    SELECT Id, Subject, ActivityDate, Status, Type
+                    FROM Task
+                    WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
+                    ORDER BY ActivityDate DESC
+                `;
+    
+                let activities = [];
+                let queryResult = await org.dataApi.query(query);
+    
+                // Collect initial records
+                activities.push(...queryResult.records.map(rec => rec.fields));
+    
+                // Fetch more records if nextRecordsUrl exists
+                while (queryResult.nextRecordsUrl) {
+                    logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
+                    queryResult = await org.dataApi.queryMore(queryResult.nextRecordsUrl);
+                    activities.push(...queryResult.records.map(rec => rec.fields));
+                }
+    
+                logger.info(`Total activities fetched: ${activities.length}`);
+                return reply.send({ activities });
+    
+            } catch (e) {
+                logger.error(`Error querying activities: ${e.message}`);
+                return reply.status(500).send({ error: e.message });
+            }
+            //return reply.status(500).send({ error: 'Salesforce Org not configured' });
         }
     });
     
