@@ -339,6 +339,7 @@ module.exports = async function (fastify, opts) {
 
     // Fetch records from Salesforce
     async function fetchRecords(queryOrUrl, activities = []) {
+        const { event, context, logger } = request.sdk;
         const org = context.org;
         try {
             const queryResult = await org.dataApi.query(queryOrUrl);
@@ -354,7 +355,7 @@ module.exports = async function (fastify, opts) {
                 return activities;
             }
         } catch (error) {
-            flogger.info(`Error fetching activities: ${error.message}`);
+            logger.info(`Error fetching activities: ${error.message}`);
             throw error;
         }
     }
