@@ -298,6 +298,8 @@ module.exports = async function (fastify, opts) {
     
                 let activities = [];
                 let queryResult = await org.dataApi.query(query);
+
+                logger.info(`queryResult: ${queryResult}`);
     
                 // Collect initial records
                 activities.push(...queryResult.records.map(rec => rec.fields));
