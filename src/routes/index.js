@@ -1,5 +1,7 @@
 'use strict'
 
+const fs = require('fs'); 
+
 module.exports = async function (fastify, opts) {
 
     /**
@@ -306,9 +308,14 @@ module.exports = async function (fastify, opts) {
                     queryResult = await org.dataApi.queryMore(queryResult.nextRecordsUrl);
                     activities.push(...queryResult.records.map(rec => rec.fields));
                 }
-    
+                
                 logger.info(`Total activities fetched: ${activities.length}`);
-                return activities;
+                fs.writeFileSync('activities.json', JSON.stringify(activities, null, 2));
+                logger.info(`File Generated successfully`);
+                let tempactivities = [];
+                tempactivities.push(activities[0]);
+                
+                return tempactivities;
     
             } catch (e) {
                 logger.error(`Error querying activities: ${e.message}`);
