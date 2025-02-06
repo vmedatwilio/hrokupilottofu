@@ -338,18 +338,18 @@ module.exports = async function (fastify, opts) {
     });
 
     // Fetch records from Salesforce
-    async function fetchRecords(context, logger, queryOrUrl, activities = []) {
+    async function fetchRecords(context, logger, queryOrUrl, activities = [], isFirstIteration = true) {
         
         const org = context.org;
         try {
-            const queryResult = await org.dataApi.query(queryOrUrl);
+            const queryResult = isFirstIteration ? await org.dataApi.query(queryOrUrl) : await org.dataApi.queryMore(queryOrUrl);
             logger.info(`Fetched ${queryResult.records.length} records`);
 
             activities.push(...queryResult.records.map(rec => rec.fields));
 
             if (queryResult.nextRecordsUrl) {
                 logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
-                return fetchRecords(context, logger,queryResult.nextRecordsUrl, activities); // Recursive call
+                return fetchRecords(context, logger,queryResult.nextRecordsUrl, activities,false); // Recursive call
             } else {
                 logger.info(`All records fetched: ${activities.length}`);
                 return activities;
