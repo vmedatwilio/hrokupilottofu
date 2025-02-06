@@ -318,7 +318,7 @@ module.exports = async function (fastify, opts) {
 
                 }*/
 
-                const activities = await fetchRecords(query);    
+                const activities = await fetchRecords(context,query);    
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
                 fs.writeFileSync(filePath, JSON.stringify(activities));
@@ -338,8 +338,8 @@ module.exports = async function (fastify, opts) {
     });
 
     // Fetch records from Salesforce
-    async function fetchRecords(queryOrUrl, activities = []) {
-        const { event, context, logger } = request.sdk;
+    async function fetchRecords(context, queryOrUrl, activities = []) {
+        
         const org = context.org;
         try {
             const queryResult = await org.dataApi.query(queryOrUrl);
