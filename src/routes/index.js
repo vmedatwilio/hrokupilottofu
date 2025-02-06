@@ -300,7 +300,7 @@ module.exports = async function (fastify, opts) {
                 let activities = [];
                 let queryResult = await org.dataApi.query(query);
 
-                logger.info(`queryResult: ${JSON.stringify(queryResult)}`);
+                logger.info(`queryResult: ${queryResult.nextRecordsUrl}`);
     
                 // Collect initial records
                 activities.push(...queryResult.records.map(rec => rec.fields));
@@ -321,7 +321,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Total activities fetched: ${activities.length}`);
                 fs.writeFileSync(filePath, JSON.stringify(activities));
                 logger.info(`File Generated successfully ${filePath}`);
-                
+
                 let tempactivities = [];
                 tempactivities.push(activities[0]);
                 
