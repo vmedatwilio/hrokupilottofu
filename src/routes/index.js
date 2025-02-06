@@ -297,7 +297,7 @@ module.exports = async function (fastify, opts) {
                     ORDER BY ActivityDate DESC
                 `;
     
-                let activities = [];
+                /*let activities = [];
                 let queryResult = await org.dataApi.query(query);
 
                 logger.info(`queryResult: ${queryResult.nextRecordsUrl}`);
@@ -316,7 +316,9 @@ module.exports = async function (fastify, opts) {
                     logger.info(`Total records fetched: ${activities.length}`);
                     logger.info(`Next Records URL: ${queryResult.nextRecordsUrl}`);
 
-                }
+                }*/
+
+                const activities = await fetchRecords(query);    
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
                 fs.writeFileSync(filePath, JSON.stringify(activities));
@@ -334,5 +336,27 @@ module.exports = async function (fastify, opts) {
             //return reply.status(500).send({ error: 'Salesforce Org not configured' });
         }
     });
+
+    // Fetch records from Salesforce
+    async function fetchRecords(queryOrUrl, activities = []) {
+        const org = context.org;
+        try {
+            const queryResult = await org.dataApi.query(queryOrUrl);
+            logger.info(`Fetched ${queryResult.records.length} records`);
+
+            activities.push(...queryResult.records.map(rec => rec.fields));
+
+            if (queryResult.nextRecordsUrl) {
+                logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
+                return fetchRecords(queryResult.nextRecordsUrl, activities); // Recursive call
+            } else {
+                logger.info(`All records fetched: ${activities.length}`);
+                return activities;
+            }
+        } catch (error) {
+            flogger.info(`Error fetching activities: ${error.message}`);
+            throw error;
+        }
+    }
     
 }
