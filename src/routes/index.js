@@ -307,14 +307,21 @@ module.exports = async function (fastify, opts) {
     
                 // Fetch more records if nextRecordsUrl exists
                 while (queryResult.nextRecordsUrl) {
+
                     logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
                     queryResult = await org.dataApi.queryMore(queryResult.nextRecordsUrl);
                     activities.push(...queryResult.records.map(rec => rec.fields));
+
+                    // Log the new number of records and nextRecordsUrl
+                    logger.info(`Total records fetched: ${activities.length}`);
+                    logger.info(`Next Records URL: ${queryResult.nextRecordsUrl}`);
+
                 }
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
                 fs.writeFileSync(filePath, JSON.stringify(activities));
-                logger.info(`File Generated successfully`);
+                logger.info(`File Generated successfully ${filePath}`);
+                
                 let tempactivities = [];
                 tempactivities.push(activities[0]);
                 
