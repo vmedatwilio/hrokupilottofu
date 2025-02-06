@@ -224,4 +224,67 @@ module.exports = async function (fastify, opts) {
         request.log.error(error)
         reply.status(500).send({ code: '500', message: error.message });
     });
+
+     /**
+     * Queries for and then returns all activies of the accountId in the invoking org.
+     *
+     * If an org reference is set on SALESFORCE_ORG_NAME config var,
+     * obtain the org's connection from the Heroku Integration add-on
+     * and query Accounts in the target org.
+     *
+     * @param request
+     * @param reply
+     * @returns {Promise<void>}
+     */
+    fastify.post('/activities', async function (request, reply) {
+        const { event, context, logger } = request.sdk;
+        const { accountId } = request.body;
+    
+        logger.info(`POST /activities: ${JSON.stringify(request.body)}`);
+    
+        if (!accountId) {
+            return reply.status(400).send({ error: 'Missing required parameter: accountId' });
+        }
+    
+        if (process.env.SALESFORCE_ORG_NAME) {
+            const orgName = process.env.SALESFORCE_ORG_NAME;
+            const herokuIntegration = request.sdk.addons.herokuIntegration;
+    
+            logger.info(`Getting ${orgName} org connection from Heroku Integration add-on...`);
+            const anotherOrg = await herokuIntegration.getConnection(orgName);
+    
+            logger.info(`Querying all Activities for AccountId: ${accountId} for last 4 years...`);
+            try {
+                const query = `
+                    SELECT Id, Subject, ActivityDate, Status, Type
+                    FROM Task
+                    WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
+                    ORDER BY ActivityDate DESC
+                `;
+    
+                let activities = [];
+                let queryResult = await anotherOrg.dataApi.query(query);
+    
+                // Collect initial records
+                activities.push(...queryResult.records.map(rec => rec.fields));
+    
+                // Fetch more records if nextRecordsUrl exists
+                while (queryResult.nextRecordsUrl) {
+                    logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
+                    queryResult = await anotherOrg.dataApi.queryMore(queryResult.nextRecordsUrl);
+                    activities.push(...queryResult.records.map(rec => rec.fields));
+                }
+    
+                logger.info(`Total activities fetched: ${activities.length}`);
+                return reply.send({ activities });
+    
+            } catch (e) {
+                logger.error(`Error querying activities: ${e.message}`);
+                return reply.status(500).send({ error: e.message });
+            }
+        } else {
+            return reply.status(500).send({ error: 'Salesforce Org not configured' });
+        }
+    });
+    
 }

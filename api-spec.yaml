@@ -58,6 +58,53 @@ paths:
           $ref: '#/components/responses/DeveloperError'
         '503':
           $ref: '#/components/responses/UnknownError'
+  /activities:
+    post:
+      operationId: GetActivities
+      description: Returns all activities (tasks/events) for a given account for the last 4 years.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: string
+                  description: The Salesforce Account ID to fetch activities for.
+              required:
+                - accountId
+      responses:
+        '200':
+          description: Successfully retrieved activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    subject:
+                      type: string
+                    activityDate:
+                      type: string
+                      format: date
+                    status:
+                      type: string
+                    type:
+                      type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DeveloperError'
+        '503':
+          $ref: '#/components/responses/UnknownError'        
   /unitofwork:
     post:
       operationId: UnitOfWork
