@@ -276,7 +276,7 @@ module.exports = async function (fastify, opts) {
                 }
     
                 logger.info(`Total activities fetched: ${activities.length}`);
-                return activities;
+                return reply.send({ activities });
     
             } catch (e) {
                 logger.error(`Error querying activities: ${e.message}`);
@@ -308,7 +308,7 @@ module.exports = async function (fastify, opts) {
                 }
     
                 logger.info(`Total activities fetched: ${activities.length}`);
-                return reply.send({ activities });
+                return activities;
     
             } catch (e) {
                 logger.error(`Error querying activities: ${e.message}`);
