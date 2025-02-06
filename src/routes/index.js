@@ -349,7 +349,7 @@ module.exports = async function (fastify, opts) {
 
             if (queryResult.nextRecordsUrl) {
                 logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
-                return fetchRecords(context, logger,queryResult.nextRecordsUrl, activities,false); // Recursive call
+                return fetchRecords(context, logger,queryResult, activities,false); // Recursive call
             } else {
                 logger.info(`All records fetched: ${activities.length}`);
                 return activities;
