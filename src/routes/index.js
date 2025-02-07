@@ -327,7 +327,6 @@ module.exports = async function (fastify, opts) {
                 // Step 6: Run the Assistant
                 const run = await openai.beta.threads.runs.create(thread.id, {
                     assistant_id: assistant.id,
-                    stream: true,
                 });
             
                 logger.info(`Run started: ${run.id}`);
@@ -540,7 +539,6 @@ module.exports = async function (fastify, opts) {
                 // Step 6: Run the Assistant
                 const run = await openai.beta.threads.runs.create(thread.id, {
                     assistant_id: assistant.id,
-                    stream: true,
                 });
             
                 logger.info(`Run started: ${run.id}`);
