@@ -254,7 +254,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 10
+                    ORDER BY ActivityDate DESC limit 100
                     `;
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -363,7 +363,7 @@ module.exports = async function (fastify, opts) {
 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
-                    summaryDetails: summary
+                    summaryDetails: JSON.parse(summary)
                 };
 
                 const opts = {
@@ -625,7 +625,7 @@ module.exports = async function (fastify, opts) {
                     isProcessing = false;
                 } else {
                     logger.info(`File still processing... Retrying in 5 seconds.`);
-                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 sec
+                    await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 sec
                 }
             } 
             catch (error) 
