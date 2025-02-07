@@ -279,7 +279,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`File uploaded to OpenAI: ${fileId}`);
 
                 // Step 2.1: Wait for the file to be processed
-                await waitForFileProcessing(fileId);
+                await waitForFileProcessing(logger,fileId);
 
                 // Step 3: Create an Assistant (if not created before)
                 const assistant = await openai.beta.assistants.create({
