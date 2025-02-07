@@ -254,7 +254,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 1000
+                    ORDER BY ActivityDate DESC
                     `;
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -340,7 +340,7 @@ module.exports = async function (fastify, opts) {
                 let status = "in_progress";
                 let runResult;
                 while (status === "in_progress" || status === "queued") {
-                await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 2 sec
+                await new Promise((resolve) => setTimeout(resolve, 300000)); // Wait 2 sec
                 runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
                 status = runResult.status;
                 }
@@ -625,7 +625,7 @@ module.exports = async function (fastify, opts) {
                     isProcessing = false;
                 } else {
                     logger.info(`File still processing... Retrying in 5 seconds.`);
-                    await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 sec
+                    await new Promise((resolve) => setTimeout(resolve, 300000)); // Wait 10 sec
                 }
             } 
             catch (error) 
