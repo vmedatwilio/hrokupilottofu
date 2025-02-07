@@ -357,7 +357,12 @@ module.exports = async function (fastify, opts) {
                 const message = await openai.beta.threads.messages.create(thread.id, {
                     role: "user",
                     content: "Summarize the activities in this file into a structured JSON format categorized by quarterly, monthly, and weekly.",
-                    attachments: [{ file_id: fileId }],
+                    attachments: [
+                        { 
+                            file_id: fileId,
+                            tools: [{ type: "file_search" }],
+                        }
+                    ],
                 });
             
                 logger.info(`Message sent: ${message.id}`);
