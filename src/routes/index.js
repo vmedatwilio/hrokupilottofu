@@ -423,7 +423,7 @@ module.exports = async function (fastify, opts) {
                 // Step 8: Retrieve response from messages
                 const messages = await openai.beta.threads.messages.list(thread.id);
 
-                logger.info(`messages received ${messages}`);
+                logger.info(`messages received ${JSON.stringify(messages)}`);
 
                 const summary = messages.data[0].content[0].text.value;
 
