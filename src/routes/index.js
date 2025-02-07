@@ -335,7 +335,7 @@ module.exports = async function (fastify, opts) {
                 let status = "in_progress";
                 let runResult;
                 while (status === "in_progress" || status === "queued") {
-                await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 sec
+                await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 2 sec
                 runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
                 status = runResult.status;
                 }
