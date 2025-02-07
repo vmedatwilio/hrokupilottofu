@@ -254,7 +254,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC
+                    ORDER BY ActivityDate DESC limit 5000
                     `;
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -318,7 +318,11 @@ module.exports = async function (fastify, opts) {
                     **Strict Requirements:**
                     1. **Return only the JSON object** with no explanations or additional text.
                     2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
-                    3. The response **must be directly usable with "JSON.parse(response)"**.`,
+                    3. The response **must be directly usable with "JSON.parse(response)"**.
+                    
+                    **Handling Large Data Volumes:**  
+                    If the data volume is too large for processing and summarization is not possible, return:  
+                    {"error":"Can't summarize due to large amount of data"}`,
                     attachments: [
                         { 
                             file_id: fileId,
@@ -340,7 +344,7 @@ module.exports = async function (fastify, opts) {
                 let status = "in_progress";
                 let runResult;
                 while (status === "in_progress" || status === "queued") {
-                await new Promise((resolve) => setTimeout(resolve, 300000)); // Wait 2 sec
+                await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 2 sec
                 runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
                 status = runResult.status;
                 }
