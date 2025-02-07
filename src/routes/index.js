@@ -333,26 +333,59 @@ module.exports = async function (fastify, opts) {
                 // Step 2: Upload file to OpenAI
                 const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
-                    purpose: "fine-tune", // Required for storage
+                    purpose: "assistants", // Required for storage
                 });
             
                 const fileId = uploadResponse.id;
                 logger.info(`File uploaded to OpenAI: ${fileId}`);
-            
-                // Step 3: Request summary from OpenAI
-                const summaryResponse = await openai.chat.completions.create({
+
+                // Step 3: Create an Assistant (if not created before)
+                const assistant = await openai.beta.assistants.create({
+                    name: "Salesforce Summarizer",
+                    instructions: "You are an AI that summarizes Salesforce activity data.",
+                    tools: [{ type: "file_search" }], // Allows using files
                     model: "gpt-4-turbo",
-                    messages: [
-                    { role: "system", content: "You are an AI that summarizes Salesforce activity data." },
-                    {
-                        role: "user",
-                        content: `Summarize the description of the activities in file ${fileId} into a structured JSON format categorized by quarterly, monthly`,
-                    },
-                    ],
+                });
+
+                logger.info(`Assistant created: ${assistant.id}`);
+
+                // Step 4: Create a Thread
+                const thread = await openai.beta.threads.create();
+                logger.info(`Thread created: ${thread.id}`);
+
+                // Step 5: Submit Message to Assistant (referencing file)
+                const message = await openai.beta.threads.messages.create(thread.id, {
+                    role: "user",
+                    content: "Summarize the activities in this file into a structured JSON format categorized by quarterly, monthly, and weekly.",
                     file_ids: [fileId],
                 });
             
-                const summary = JSON.parse(summaryResponse.choices[0].message.content);
+                logger.info(`Message sent: ${message.id}`);
+
+                // Step 6: Run the Assistant
+                const run = await openai.beta.threads.runs.create(thread.id, {
+                    assistant_id: assistant.id,
+                });
+            
+                logger.info(`Run started: ${run.id}`);
+
+                // Step 7: Wait for completion (polling for result)
+                let status = "in_progress";
+                let runResult;
+                while (status === "in_progress" || status === "queued") {
+                await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 sec
+                runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+                status = runResult.status;
+                }
+
+                if (status !== "completed") {
+                throw new Error(`Run failed with status: ${status}`);
+                }
+
+                // Step 8: Retrieve response from messages
+                const messages = await openai.beta.threads.messages.list(thread.id);
+                const summary = messages.data[0].content[0].text.value;
+
                 logger.info(`Summary received ${summary}`);
             
                 // Send the summary as JSON response
