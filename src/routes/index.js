@@ -342,8 +342,10 @@ module.exports = async function (fastify, opts) {
                 status = runResult.status;
                 }
 
-                if (status !== "completed") {
-                throw new Error(`Run failed with status: ${status}`);
+                if (status !== "completed") 
+                {
+                    logger.info(`Run failed: ${JSON.stringify(runResult, null, 2)}`);
+                    throw new Error(`Run failed with status: ${status}`);
                 }
 
                 // Step 8: Retrieve response from messages
