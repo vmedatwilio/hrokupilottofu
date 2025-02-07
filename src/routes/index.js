@@ -295,7 +295,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC Limit 100
+                    ORDER BY ActivityDate DESC
                 `;
     
                 /*let activities = [];
@@ -356,7 +356,40 @@ module.exports = async function (fastify, opts) {
                 // Step 5: Submit Message to Assistant (referencing file)
                 const message = await openai.beta.threads.messages.create(thread.id, {
                     role: "user",
-                    content: "Summarize the activities in this file into a structured JSON format categorized by quarterly, monthly, and weekly.",
+                    content: `You are an AI that summarizes Salesforce activity data into a structured format. 
+                    Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
+                    
+                    - **Quarterly**
+                    - **Monthly**
+                    - **Weekly**
+
+                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.  
+                    Ensure that:
+                    
+                    - Each section includes key themes discussed.
+                    - Summarize the main takeaways from interactions.
+                    - Highlight action points, objections, and outcomes.
+                    - Group activities based on the 'activityDate' field.
+
+                    The final response **MUST** be a JSON object with this structure:
+                    
+                    \`\`\`json
+                    {
+                        "quarterly_summary": [
+                        { "quarter": "Q1 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] },
+                        { "quarter": "Q2 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
+                        ],
+                        "monthly_summary": [
+                        { "month": "January 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] },
+                        { "month": "February 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
+                        ],
+                        "weekly_summary": [
+                        { "week": "2024-W01", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
+                        ]
+                    }
+                    \`\`\`
+
+                    Do not return generic explanations; only return the structured JSON response.`,
                     attachments: [
                         { 
                             file_id: fileId,
