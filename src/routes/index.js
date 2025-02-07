@@ -267,8 +267,7 @@ module.exports = async function (fastify, opts) {
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
-                const files = await openai.files.list();
-                logger.info(`files are : ${files}`);
+                deleteSalesforceActivitiesFile(logger,openai);
 
                 // Step 2: Upload file to OpenAI
                 const uploadResponse = await openai.files.create({
@@ -596,6 +595,30 @@ module.exports = async function (fastify, opts) {
             return filePath;
         } catch (error) {
             logger.info(`Error writing file: ${error}`);
+            throw error;
+        }
+    }
+
+    // delect salesforce activites files generated for openAI Processing
+    async function deleteSalesforceActivitiesFile(logger,openai) {
+        const filePath = path.join(__dirname, "salesforce_activities.json");
+        try {
+            
+            // Step 1: List all files
+            const files = await openai.files.list();
+            // Step 2: Iterate through the files and find those with the specified name
+            for (const file of files.data) {
+                logger.info(`Deleting file name: (${file.filename})`);
+            if (file.filename === "salesforce_activities.json") {
+                logger.info(`Deleting file: ${file.id} (${file.filename})`);
+                
+                // Step 3: Delete the matching file
+                await openai.files.del(file.id);
+                logger.info(`Deleted file: ${file.id}`);
+            }
+            }
+        } catch (error) {
+            logger.info(`Error deleting file: ${error}`);
             throw error;
         }
     }
