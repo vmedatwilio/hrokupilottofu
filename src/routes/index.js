@@ -371,9 +371,10 @@ module.exports = async function (fastify, opts) {
 
     // Fetch records from Salesforce
     async function generateFile( activities = [],logger) {
-        const filePath = path.join(__dirname, "salesforce_activities.json");
+        const filePath = path.join(__dirname, "salesforce_activities.jsonl");
         try {
-            await fs.writeFile(filePath, JSON.stringify(activities, null, 2), "utf-8");
+            const jsonlData = activities.map((entry) => JSON.stringify(entry)).join("\n");
+            await fs.writeFile(filePath, jsonlData, "utf-8");
             logger.info(`File Generated successfully ${filePath}`);
             return filePath;
         } catch (error) {
