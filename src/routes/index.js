@@ -279,7 +279,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`File uploaded to OpenAI: ${fileId}`);
 
                 // Step 2.1: Wait for the file to be processed
-                await waitForFileProcessing(logger,fileId);
+                await waitForFileProcessing(logger,fileId,openai);
 
                 // Step 3: Create an Assistant (if not created before)
                 const assistant = await openai.beta.assistants.create({
@@ -610,7 +610,7 @@ module.exports = async function (fastify, opts) {
     }
 
     // delect salesforce activites files generated for openAI Processing
-    async function waitForFileProcessing(logger,fileId) {
+    async function waitForFileProcessing(logger,fileId,openai) {
 
         let isProcessing = true;
 
