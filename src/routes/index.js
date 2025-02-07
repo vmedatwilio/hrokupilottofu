@@ -356,40 +356,27 @@ module.exports = async function (fastify, opts) {
                 // Step 5: Submit Message to Assistant (referencing file)
                 const message = await openai.beta.threads.messages.create(thread.id, {
                     role: "user",
-                    content: `You are an AI that summarizes Salesforce activity data into a structured format. 
-                    Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
-                    
+                    content: `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
+
                     - **Quarterly**
                     - **Monthly**
                     - **Weekly**
 
-                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.  
+                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
+
                     Ensure that:
-                    
                     - Each section includes key themes discussed.
                     - Summarize the main takeaways from interactions.
                     - Highlight action points, objections, and outcomes.
                     - Group activities based on the 'activityDate' field.
 
-                    The final response **MUST** be a JSON object with this structure:
-                    
-                    
-                    {
-                        "quarterly_summary": [
-                        { "quarter": "Q1 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] },
-                        { "quarter": "Q2 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
-                        ],
-                        "monthly_summary": [
-                        { "month": "January 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] },
-                        { "month": "February 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
-                        ],
-                        "weekly_summary": [
-                        { "week": "2024-W01", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
-                        ]
-                    }
-                   
+                    The final response **MUST** be a single-line, minified JSON object without unnecessary whitespace, newline characters, or special formatting. It should strictly follow this structure:
 
-                    Do not return generic explanations; only return the structured compressed JSON response means entire json response in single line without new lines and extra special characters keywords.other than double quotes`,
+                    {"quarterly_summary":[{"quarter":"Q1 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"quarter":"Q2 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"weekly_summary":[{"week":"2024-W01","summary":"...","key_topics":["..."],"action_items":["..."]}]}
+                    **Strict Requirements:**
+                    1. **Return only the JSON object** with no explanations or additional text.
+                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
+                    3. The response **must be directly usable with "JSON.parse(response)"**.`,
                     attachments: [
                         { 
                             file_id: fileId,
@@ -432,7 +419,9 @@ module.exports = async function (fastify, opts) {
             
                 // Send the summary as JSON response
                 let tempactivities = [];
-                tempactivities.push(JSON.parse(summary));
+                let activity;
+                activity.subject=summary;
+                tempactivities.push(activity);
                 
                 return tempactivities;
     
