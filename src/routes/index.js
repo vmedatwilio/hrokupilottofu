@@ -356,7 +356,7 @@ module.exports = async function (fastify, opts) {
 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
-                    summaryDetails: JSON.parse(summary)
+                    summaryDetails: summary
                 };
 
                 const opts = {
