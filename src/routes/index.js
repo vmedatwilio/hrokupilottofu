@@ -229,6 +229,156 @@ module.exports = async function (fastify, opts) {
         reply.status(500).send({ code: '500', message: error.message });
     });
 
+    fastify.post('/activitysummarygeneration',
+        // async=true to apply standard response 201 response or provide custom response handler function
+        {config: {salesforce: {async: unitOfWorkResponseHandler}}},
+        async (request, reply) => {
+            const { event, context, logger } = request.sdk;
+            const org = context.org;
+            const dataApi = context.org.dataApi;
+
+            logger.info(`POST /activitysummarygeneration ${JSON.stringify(event.data || {})}`);
+
+            const validateField = (field, value) => {
+                if (!value) throw new Error(`Please provide ${field}`);
+            }
+
+            // Validate Input
+            const data = event.data;
+            validateField('accountId', data.accountId);
+
+            try 
+            {
+                const accountId=data.accountId;
+                const query = `
+                    SELECT Id, Subject,Description,ActivityDate, Status, Type
+                    FROM Task
+                    WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
+                    ORDER BY ActivityDate DESC limit 10
+                    `;
+                //fetch all activites of that account    
+                const activities = await fetchRecords(context,logger,query);    
+                logger.info(`Total activities fetched: ${activities.length}`);
+
+                // Step 1: Generate JSON file
+                const filePath = await generateFile(activities,logger);
+
+                const openai = new OpenAI({
+                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
+                  });
+
+                // Step 2: Upload file to OpenAI
+                const uploadResponse = await openai.files.create({
+                    file: fs.createReadStream(filePath),
+                    purpose: "assistants", // Required for storage
+                });
+            
+                const fileId = uploadResponse.id;
+                logger.info(`File uploaded to OpenAI: ${fileId}`);
+
+                // Step 3: Create an Assistant (if not created before)
+                const assistant = await openai.beta.assistants.create({
+                    name: "Salesforce Summarizer",
+                    instructions: "You are an AI that summarizes Salesforce activity data.",
+                    tools: [{ type: "file_search" }], // Allows using files
+                    model: "gpt-4-turbo",
+                });
+
+                logger.info(`Assistant created: ${assistant.id}`);
+
+                // Step 4: Create a Thread
+                const thread = await openai.beta.threads.create();
+                logger.info(`Thread created: ${thread.id}`);
+
+                // Step 5: Submit Message to Assistant (referencing file)
+                const message = await openai.beta.threads.messages.create(thread.id, {
+                    role: "user",
+                    content: `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
+
+                    - **Quarterly**
+                    - **Monthly**
+                    - **Weekly**
+
+                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
+
+                    Ensure that:
+                    - Each section includes key themes discussed.
+                    - Summarize the main takeaways from interactions.
+                    - Highlight action points, objections, and outcomes.
+                    - Group activities based on the 'activityDate' field.
+
+                    The final response **MUST** be a single-line, minified JSON object without unnecessary whitespace, newline characters, or special formatting. It should strictly follow this structure:
+
+                    {"quarterly_summary":[{"quarter":"Q1 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"quarter":"Q2 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"weekly_summary":[{"week":"2024-W01","summary":"...","key_topics":["..."],"action_items":["..."]}]}
+                    **Strict Requirements:**
+                    1. **Return only the JSON object** with no explanations or additional text.
+                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
+                    3. The response **must be directly usable with "JSON.parse(response)"**.`,
+                    attachments: [
+                        { 
+                            file_id: fileId,
+                            tools: [{ type: "file_search" }],
+                        }
+                    ],
+                });
+            
+                logger.info(`Message sent: ${message.id}`);
+
+                // Step 6: Run the Assistant
+                const run = await openai.beta.threads.runs.create(thread.id, {
+                    assistant_id: assistant.id,
+                    stream: true,
+                });
+            
+                logger.info(`Run started: ${run.id}`);
+
+                // Step 7: Wait for completion (polling for result)
+                let status = "in_progress";
+                let runResult;
+                while (status === "in_progress" || status === "queued") {
+                await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 sec
+                runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+                status = runResult.status;
+                }
+
+                if (status !== "completed") {
+                throw new Error(`Run failed with status: ${status}`);
+                }
+
+                // Step 8: Retrieve response from messages
+                const messages = await openai.beta.threads.messages.list(thread.id);
+
+                //logger.info(`messages received ${JSON.stringify(messages)}`);
+
+                const summary = messages.data[0].content[0].text.value;
+                logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
+                logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0].text)}`);
+                logger.info(`Summary received ${summary}`);
+
+                // Construct the result by getting the Id from the successful inserts
+                const callbackResponseBody = {
+                    summaryDetails: JSON.stringify(JSON.parse(summary))
+                };
+
+                const opts = {
+                    method: 'POST',
+                    body: JSON.stringify(callbackResponseBody),
+                    headers: {'Content-Type': 'application/json'}
+                }
+                const callbackResponse = await org.request(data.callbackUrl, opts);
+                logger.info(JSON.stringify(callbackResponse));
+                
+            }
+            catch (err) 
+            {
+                const errorMessage = `Failed to process summary. Root Cause : ${err.message}`;
+                logger.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            return reply;
+    });
+
      /**
      * Queries for and then returns all activies of the accountId in the invoking org.
      *

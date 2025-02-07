@@ -104,7 +104,7 @@ paths:
         '500':
           $ref: '#/components/responses/DeveloperError'
         '503':
-          $ref: '#/components/responses/UnknownError'        
+          $ref: '#/components/responses/UnknownError' 
   /unitofwork:
     post:
       operationId: UnitOfWork
@@ -162,6 +162,51 @@ paths:
                               type: string
                             followupCaseId:
                               type: string
+              responses:   # Expected responses to the callback message
+                '200':
+                  description: Your server returns this code if it accepts the callback               
+  /activitysummarygeneration:
+    post:
+      operationId: ActivitySummaryGeneration
+      description:
+        Receives a payload containing AccountId and uses to fetch the all activites of the account
+        and summarise the activites and break down into Monthly and Quarterly.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: string
+                callbackUrl:
+                  type: string
+      responses:
+        '201':
+          description: Received ActivitySummaryGeneration API request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/DeveloperError'
+        '503':
+          $ref: '#/components/responses/UnknownError'
+      callbacks:
+        unitOfWorkResponse:
+          '{$request.body#/callbackUrl}':
+            post:
+              description: Response from /ActivitySummaryGeneration API
+              operationId: unitOfWorkResponseCallback
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        summaryDetails:
+                          type: string
               responses:   # Expected responses to the callback message
                 '200':
                   description: Your server returns this code if it accepts the callback
