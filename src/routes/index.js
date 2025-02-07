@@ -324,7 +324,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Total activities fetched: ${activities.length}`);
 
                 // Step 1: Generate JSON file
-                const filePath = await generateFile(activities);
+                const filePath = await generateFile(activities,logger);
 
                 const openai = new OpenAI({
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
@@ -370,7 +370,7 @@ module.exports = async function (fastify, opts) {
     });
 
     // Fetch records from Salesforce
-    async function generateFile( activities = []) {
+    async function generateFile( activities = [],logger) {
         const filePath = path.join(__dirname, "salesforce_activities.json");
         try {
             await fs.writeFile(filePath, JSON.stringify(activities, null, 2), "utf-8");
