@@ -373,7 +373,7 @@ module.exports = async function (fastify, opts) {
 
                     The final response **MUST** be a JSON object with this structure:
                     
-                    \`\`\`json
+                    
                     {
                         "quarterly_summary": [
                         { "quarter": "Q1 2024", "summary": "...", "key_topics": ["..."], "action_items": ["..."] },
@@ -387,7 +387,7 @@ module.exports = async function (fastify, opts) {
                         { "week": "2024-W01", "summary": "...", "key_topics": ["..."], "action_items": ["..."] }
                         ]
                     }
-                    \`\`\`
+                   
 
                     Do not return generic explanations; only return the structured JSON response.`,
                     attachments: [
@@ -423,7 +423,7 @@ module.exports = async function (fastify, opts) {
                 // Step 8: Retrieve response from messages
                 const messages = await openai.beta.threads.messages.list(thread.id);
 
-                logger.info(`messages received ${JSON.stringify(messages)}`);
+                //logger.info(`messages received ${JSON.stringify(messages)}`);
 
                 const summary = messages.data[0].content[0].text.value;
 
