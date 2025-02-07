@@ -254,7 +254,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 10
+                    ORDER BY ActivityDate DESC limit 1000
                     `;
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -356,7 +356,7 @@ module.exports = async function (fastify, opts) {
 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
-                    summaryDetails: JSON.stringify(JSON.parse(summary))
+                    summaryDetails: JSON.parse(summary)
                 };
 
                 const opts = {
