@@ -194,11 +194,11 @@ paths:
         '503':
           $ref: '#/components/responses/UnknownError'
       callbacks:
-        unitOfWorkResponse:
+        activitySummaryResponse:
           '{$request.body#/callbackUrl}':
             post:
               description: Response from /ActivitySummaryGeneration API
-              operationId: unitOfWorkResponseCallback
+              operationId: activitySummaryResponseCallback
               requestBody:
                 content:
                   application/json:
