@@ -295,7 +295,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 100
+                    ORDER BY ActivityDate DESC limit 10
                 `;
     
                 /*let activities = [];
@@ -426,8 +426,8 @@ module.exports = async function (fastify, opts) {
                 //logger.info(`messages received ${JSON.stringify(messages)}`);
 
                 const summary = messages.data[0].content[0].text.value;
-                logger.info(`Summary received ${messages.data[0].content[0]}`);
-                logger.info(`Summary received ${messages.data[0].content[0].text}`);
+                logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
+                logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0].text)}`);
                 logger.info(`Summary received ${summary}`);
             
                 // Send the summary as JSON response
