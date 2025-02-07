@@ -324,6 +324,17 @@ module.exports = async function (fastify, opts) {
                 fs.writeFileSync(filePath, JSON.stringify(activities));
                 logger.info(`File Generated successfully ${filePath}`);
 
+                const openai = new OpenAI({
+                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
+                  });
+
+                const response = await openai.chat.completions.create({
+                    model: "gpt-4",
+                    messages: [{ role: "user", content: 'Just say HI, If u read this prompt message' }],
+                  });
+
+                logger.info(`OPNE AI Response ${response.choices[0].message.content}`)  
+
                 let tempactivities = [];
                 tempactivities.push(activities[0]);
                 
