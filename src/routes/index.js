@@ -419,7 +419,7 @@ module.exports = async function (fastify, opts) {
             
                 // Send the summary as JSON response
                 let tempactivities = [];
-                let activity;
+                let activity={};
                 activity.subject=summary;
                 tempactivities.push(activity);
                 
