@@ -292,7 +292,7 @@ module.exports = async function (fastify, opts) {
             logger.info(`Querying all Activities for AccountId: ${accountId} for last 4 years...`);
             try {
                 const query = `
-                    SELECT Id, Subject, ActivityDate, Status, Type
+                    SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
                     ORDER BY ActivityDate DESC
