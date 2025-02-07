@@ -389,7 +389,7 @@ module.exports = async function (fastify, opts) {
                     }
                    
 
-                    Do not return generic explanations; only return the structured JSON response.`,
+                    Do not return generic explanations; only return the structured compressed JSON response means entire json response in single line without new lines and extra special characters keywords.other than double quotes`,
                     attachments: [
                         { 
                             file_id: fileId,
