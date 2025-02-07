@@ -278,6 +278,9 @@ module.exports = async function (fastify, opts) {
                 const fileId = uploadResponse.id;
                 logger.info(`File uploaded to OpenAI: ${fileId}`);
 
+                // Step 2.1: Wait for the file to be processed
+                await waitForFileProcessing(fileId);
+
                 // Step 3: Create an Assistant (if not created before)
                 const assistant = await openai.beta.assistants.create({
                     name: "Salesforce Summarizer",
@@ -588,7 +591,12 @@ module.exports = async function (fastify, opts) {
 
     // Fetch records from Salesforce
     async function generateFile( activities = [],logger) {
-        const filePath = path.join(__dirname, "salesforce_activities.json");
+
+        // Get current date-time in YYYYMMDD_HHMMSS format
+        const timestamp = new Date().toISOString().replace(/[:.-]/g, "_");
+        const filename = `salesforce_activities_${timestamp}.json`;
+
+        const filePath = path.join(__dirname, filename);
         try {
             //const jsonlData = activities.map((entry) => JSON.stringify(entry)).join("\n");
             await fs.writeFile(filePath, JSON.stringify(activities, null, 2), "utf-8");
@@ -602,26 +610,29 @@ module.exports = async function (fastify, opts) {
     }
 
     // delect salesforce activites files generated for openAI Processing
-    async function deleteSalesforceActivitiesFile(logger,openai) {
-        const filePath = path.join(__dirname, "salesforce_activities.json");
-        try {
-            
-            // Step 1: List all files
-            const files = await openai.files.list();
-            // Step 2: Iterate through the files and find those with the specified name
-            for (const file of files.data) {
-                logger.info(`Deleting file name: (${file.filename})`);
-            if (file.filename === "salesforce_activities.json") {
-                logger.info(`Deleting file: ${file.id} (${file.filename})`);
-                
-                // Step 3: Delete the matching file
-                await openai.files.del(file.id);
-                logger.info(`Deleted file: ${file.id}`);
+    async function waitForFileProcessing(logger,fileId) {
+
+        let isProcessing = true;
+
+        while (isProcessing) {
+            try 
+            {
+                const fileDetails = await openai.files.retrieve(fileId);
+                logger.info(`Checking file ${fileId}: Status - ${fileDetails.status}`);
+
+                if (fileDetails.status === "processed") {
+                    logger.info(`File ${fileId} is processed.`);
+                    isProcessing = false;
+                } else {
+                    logger.info(`File still processing... Retrying in 5 seconds.`);
+                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 sec
+                }
+            } 
+            catch (error) 
+            {
+                logger.info("Error checking file status:", error);
+                throw error;
             }
-            }
-        } catch (error) {
-            logger.info(`Error deleting file: ${error}`);
-            throw error;
         }
     }
 
