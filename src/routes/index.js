@@ -267,7 +267,7 @@ module.exports = async function (fastify, opts) {
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
-                deleteSalesforceActivitiesFile(logger,openai);
+                //deleteSalesforceActivitiesFile(logger,openai);
 
                 // Step 2: Upload file to OpenAI
                 const uploadResponse = await openai.files.create({
