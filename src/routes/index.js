@@ -295,7 +295,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC
+                    ORDER BY ActivityDate DESC Limit 100
                 `;
     
                 /*let activities = [];
