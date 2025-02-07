@@ -267,6 +267,9 @@ module.exports = async function (fastify, opts) {
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
+                const files = await openai.files.list();
+                logger.info(`files are : ${files}`);
+
                 // Step 2: Upload file to OpenAI
                 const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
