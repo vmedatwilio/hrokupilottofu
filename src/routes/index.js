@@ -425,7 +425,7 @@ module.exports = async function (fastify, opts) {
 
                 //logger.info(`messages received ${JSON.stringify(messages)}`);
 
-                const summary = messages.data[0].content[0].text.value;
+                const summary = JSON.parse(messages.data[0].content[0].text.value);
 
                 logger.info(`Summary received ${summary}`);
             
