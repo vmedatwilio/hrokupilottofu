@@ -1,6 +1,7 @@
 'use strict'
 
 const fs = require('fs');
+const { OpenAI } = require("openai");
 const filePath = '/tmp/activities.json'; 
 
 module.exports = async function (fastify, opts) {
