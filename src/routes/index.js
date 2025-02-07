@@ -1,8 +1,8 @@
 'use strict'
 
-const fs = require('fs');
 const { OpenAI } = require("openai");
-const filePath = '/tmp/activities.json'; 
+const fs = require("fs-extra");
+const path = require("path");
 
 module.exports = async function (fastify, opts) {
 
@@ -322,8 +322,9 @@ module.exports = async function (fastify, opts) {
                 const activities = await fetchRecords(context,logger,query);    
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
-                fs.writeFileSync(filePath, JSON.stringify(activities));
-                logger.info(`File Generated successfully ${filePath}`);
+
+                // Step 1: Generate JSON file
+                const filePath = await generateFile(activities);
 
                 const openai = new OpenAI({
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
@@ -367,6 +368,19 @@ module.exports = async function (fastify, opts) {
             //return reply.status(500).send({ error: 'Salesforce Org not configured' });
         }
     });
+
+    // Fetch records from Salesforce
+    async function generateFile( activities = []) {
+        const filePath = path.join(__dirname, "salesforce_activities.json");
+        try {
+            await fs.writeFile(filePath, JSON.stringify(activities, null, 2), "utf-8");
+            logger.info(`File Generated successfully ${filePath}`);
+            return filePath;
+        } catch (error) {
+            logger.info(`Error writing file: ${error}`);
+            throw error;
+        }
+    }
 
     // Fetch records from Salesforce
     async function fetchRecords(context, logger, queryOrUrl, activities = [], isFirstIteration = true) {
