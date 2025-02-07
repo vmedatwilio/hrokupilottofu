@@ -329,10 +329,32 @@ module.exports = async function (fastify, opts) {
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
-                const response = await openai.chat.completions.create({
-                    model: "gpt-4",
-                    messages: [{ role: "user", content: 'Just say HI, If u read this prompt message' }],
-                  });
+                // Step 2: Upload file to OpenAI
+                const uploadResponse = await openai.files.create({
+                    file: fs.createReadStream(filePath),
+                    purpose: "fine-tune", // Required for storage
+                });
+            
+                const fileId = uploadResponse.id;
+                logger.info(`File uploaded to OpenAI: ${fileId}`);
+            
+                // Step 3: Request summary from OpenAI
+                const summaryResponse = await openai.chat.completions.create({
+                    model: "gpt-4-turbo",
+                    messages: [
+                    { role: "system", content: "You are an AI that summarizes Salesforce activity data." },
+                    {
+                        role: "user",
+                        content: `Summarize the description of the activities in file ${fileId} into a structured JSON format categorized by quarterly, monthly`,
+                    },
+                    ],
+                    file_ids: [fileId],
+                });
+            
+                const summary = JSON.parse(summaryResponse.choices[0].message.content);
+                logger.info("Summary received:", summary);
+            
+                // Send the summary as JSON response
 
                 logger.info(`OPNE AI Response ${response.choices[0].message.content}`)  
 
