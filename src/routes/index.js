@@ -352,7 +352,7 @@ module.exports = async function (fastify, opts) {
                 });
             
                 const summary = JSON.parse(summaryResponse.choices[0].message.content);
-                logger.info("Summary received:", summary);
+                logger.info(`Summary received ${summary}`);
             
                 // Send the summary as JSON response
                 let tempactivities = [];
