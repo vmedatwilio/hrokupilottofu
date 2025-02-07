@@ -355,11 +355,8 @@ module.exports = async function (fastify, opts) {
                 logger.info("Summary received:", summary);
             
                 // Send the summary as JSON response
-
-                logger.info(`OPNE AI Response ${response.choices[0].message.content}`)  
-
                 let tempactivities = [];
-                tempactivities.push(activities[0]);
+                tempactivities.push(summary);
                 
                 return tempactivities;
     
