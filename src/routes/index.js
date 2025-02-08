@@ -407,17 +407,18 @@ module.exports = async function (fastify, opts) {
 
             // Validate Input
             const data = event.data;
-            validateField('accountId', data.accountId);
+            validateField('accountId', data.accountId);//queryText,assisstantPrompt,userPrompt
+            validateField('queryText', data.queryText);
+            validateField('assisstantPrompt', data.assisstantPrompt);
+            validateField('userPrompt', data.userPrompt);
 
             try 
             {
                 const accountId=data.accountId;
-                const query = `
-                    SELECT Subject,Description,ActivityDate
-                    FROM Task
-                    WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC
-                    `;
+                const queryText=data.queryText;
+                const assisstantPrompt=data.assisstantPrompt;
+                const userPrompt=data.userPrompt;
+                const query = queryText;
                 /*
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -475,7 +476,7 @@ module.exports = async function (fastify, opts) {
 
                 
 
-                const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger);
+                const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger,assisstantPrompt,userPrompt);
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
@@ -727,7 +728,7 @@ module.exports = async function (fastify, opts) {
     }
 
     //create assistant and generate summary
-    async function generateSummaryFromVectorStore(fileId, openai,logger) 
+    async function generateSummaryFromVectorStore(fileId, openai,logger,assisstantPrompt,userPrompt) 
     {
         //Step 1: Create Salesforce Data Analyst Assistant
         const myAssistant = await openai.beta.assistants.create({
@@ -775,26 +776,12 @@ module.exports = async function (fastify, opts) {
           const thread = await openai.beta.threads.create({
             messages: [
               {
-                role: "system",
-                content:`You will be provided with list of email activites of an account of the last 4 years in the vector store files and your task is to summarize those email activites based on user given the input for specific duration as follows:
-                - Assume all those activites were completed
-                - Overall summary of those activites by analyzing the description.
-                - Each section includes key themes discussed.
-                - Summarize the main takeaways from interactions.
-                - Highlight action points, objections, and outcomes.
-                - Group activities based on the 'activityDate' field.`,
+                role: "assistant",
+                content:assisstantPrompt,
               }, 
               {
                 role: "user",
-                content:
-                  ` generate a structured JSON summary for last 3 months categorized by:
-                    
-                    - **Monthly**
-                    
-                    The final response **MUST** be a single-line, minified JSON object without unnecessary whitespace, newline characters, or special formatting. It should strictly follow this structure:
-
-                    {"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}]}
-                    `,
+                content:userPrompt,
                 // Attach the new file to the message.
                 attachments: [{ 
                         file_id: fileId,

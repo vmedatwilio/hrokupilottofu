@@ -225,6 +225,12 @@ paths:
               properties:
                 accountId:
                   type: string
+                queryText:
+                  type: string
+                assisstantPrompt:
+                  type: string
+                userPrompt:
+                  type: string   
                 callbackUrl:
                   type: string
       responses:
