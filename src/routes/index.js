@@ -777,11 +777,9 @@ module.exports = async function (fastify, opts) {
               {
                 role: "user",
                 content:
-                  `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
-
-                    - **Quarterly**
+                  `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary for last 3 months categorized by:
+                    
                     - **Monthly**
-                    - **Weekly**
 
                     If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
 
