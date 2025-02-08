@@ -415,7 +415,7 @@ module.exports = async function (fastify, opts) {
                     SELECT Id, Subject,Description,ActivityDate, Status, Type
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 5000
+                    ORDER BY ActivityDate DESC limit 15000
                     `;
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
@@ -431,21 +431,22 @@ module.exports = async function (fastify, opts) {
 
                   const finalSummary = {};
 
-                  for (const year in groupedData) {
-                      finalSummary[year] = { quarterly: {}, monthly: {}, weekly: {} };
-              
-                      /*for (const quarter in groupedData[year].quarterly) {
-                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter],openai,logger);
-                      }
-              
-                      for (const month in groupedData[year].monthly) {
-                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month],openai,logger);
-                      }*/
-              
-                      for (const week in groupedData[year].weekly) {
-                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week],openai,logger);
-                      }
-                  }
+                    for (const year in groupedData) 
+                    {
+                        finalSummary[year] = {};
+                        for (const quarter in groupedData[year]) {
+                            finalSummary[year][quarter] = {};
+                            for (const month in groupedData[year][quarter]) {
+                                console.log(`Processing: Year ${year}, ${quarter}, Month ${month}`);
+                
+                                // Send each month's data separately
+                                const summary = await generateSummary(groupedData[year][quarter][month]);
+                
+                                // Store summarized response
+                                finalSummary[year][quarter][month] = summary || 'Error generating summary';
+                            }
+                        }
+                    }
 
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
                 
@@ -698,94 +699,47 @@ module.exports = async function (fastify, opts) {
     }
 
     // Process Each Chunk with OpenAI API
-    async function generateSummary( label, data, openai,logger) 
+    async function generateSummary(data, openai,logger) 
     {
         if (!data || data.length === 0) return null; // Skip empty chunks
-        logger.info(`Processing ${label} with ${data.length} activities...`);
 
-        const prompt = `
-        Summarize the following ${label} activities:
-        Data: ${JSON.stringify(data.map(a => ({ date: a.activitydate, summary: a.description })))}
-        Include:
-        - Summary
-        - Key topics discussed
-        - Action items
-        `;
-
-        const assistant = await openai.beta.assistants.create({
-            name: "Salesforce Summarizer",
-            instructions: "You are an AI that summarizes Salesforce activity data.",
-            tools: [{ type: "file_search" }], // Allows using files
-            model: "gpt-4-turbo",
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4-turbo',
+            messages: [
+                { role: 'system', content: 'You are an AI that summarizes activity data efficiently.' },
+                { role: 'user', content: `Summarize the following activity data:\n\n${JSON.stringify(data.map(a => ({ date: a.activitydate, summary: a.description })))}
+                                        Include:
+                                        - Summary
+                                        - Key topics discussed
+                                        - Action items` }
+            ]
         });
 
-        logger.info(`Assistant created: ${assistant.id}`);
+        return response.choices[0].message.content;
 
-        // ✅ Step 1: Create a Thread
-        const thread = await openai.beta.threads.create();
-
-        // ✅ Step 2: Send Message to the Thread
-        const message = await openai.beta.threads.messages.create(thread.id, {
-            role: "user",
-            content: prompt,
-        });
-
-        // ✅ Step 3: Run the Assistant (if using OpenAI Assistants)
-        const run = await openai.beta.threads.runs.create(thread.id, {
-            assistant_id: assistant.id, // Replace with actual Assistant ID
-        });
-
-        // ✅ Step 4: Wait for Completion & Fetch Messages
-        let runStatus;
-        do {
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before checking again
-        } while (runStatus.status !== "completed");
-
-        // ✅ Step 5: Get Final Response
-        const messages = await openai.beta.threads.messages.list(thread.id);
-        const assistantResponse = messages.data.find(msg => msg.role === "assistant");
-
-        return assistantResponse ? assistantResponse.content : "No response generated.";
-
-        
     }
 
     // group activities by Quarterly,Monthly,Weekly for each year
     async function groupActivities( activities = [],logger) {
+
         const groupedData = {};
-        //logger.info(`groupActivities Total activities fetched: ${JSON.stringify(activities[0])}`);
-        activities.forEach((activity) => {
-            const date = new Date(activity.activitydate);
+
+        activities.forEach(activity => {
+            const date = new Date(activity.activitydate); // Assuming activity has a timestamp
             const year = date.getFullYear();
-            const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
-            const month = date.toLocaleString("en-US", { month: "long" });
-            const week = `W${Math.ceil(date.getDate() / 7)}`; // Approximate week number
+            const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+            const quarter = Math.ceil(month / 3);
 
-            //logger.info(`groupActivities date year: ${date}${year}`);
+            if (!groupedData[year]) groupedData[year] = {};
+            if (!groupedData[year][`Q${quarter}`]) groupedData[year][`Q${quarter}`] = {};
+            if (!groupedData[year][`Q${quarter}`][month]) groupedData[year][`Q${quarter}`][month] = [];
 
-            if (!groupedData[year]) {
-                groupedData[year] = { quarterly: {}, monthly: {}, weekly: {} };
-            }
-
-            if (!groupedData[year].quarterly[quarter]) {
-                groupedData[year].quarterly[quarter] = [];
-            }
-            groupedData[year].quarterly[quarter].push(activity);
-
-            if (!groupedData[year].monthly[month]) {
-                groupedData[year].monthly[month] = [];
-            }
-            groupedData[year].monthly[month].push(activity);
-
-            if (!groupedData[year].weekly[week]) {
-                groupedData[year].weekly[week] = [];
-            }
-            groupedData[year].weekly[week].push(activity);
+            groupedData[year][`Q${quarter}`][month].push(activity);
         });
-        //logger.info(`groupActivities date year: ${groupedData}`);
-        return groupedData;
 
+        logger.info(`grouped data is ${groupedData}`);
+
+        return groupedData;
     }
 
     // delect salesforce activites files generated for openAI Processing
