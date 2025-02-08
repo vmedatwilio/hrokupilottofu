@@ -267,6 +267,7 @@ module.exports = async function (fastify, opts) {
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
+
                 //deleteSalesforceActivitiesFile(logger,openai);
 
                 // Step 2: Upload file to OpenAI
@@ -417,6 +418,7 @@ module.exports = async function (fastify, opts) {
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
                     ORDER BY ActivityDate DESC limit 15000
                     `;
+                /*
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
                 logger.info(`Total activities fetched: ${activities.length}`);
@@ -449,6 +451,16 @@ module.exports = async function (fastify, opts) {
                     }
 
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
+                */
+
+                // Step 1: Generate JSON file
+                const filePath = await generateFile(activities,logger);
+
+                const openai = new OpenAI({
+                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
+                  });
+
+                const finalSummary=await generateSummaryFromVectorStore(filePath,openai,logger);
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
@@ -460,6 +472,7 @@ module.exports = async function (fastify, opts) {
                     body: JSON.stringify(callbackResponseBody),
                     headers: {'Content-Type': 'application/json'}
                 }
+                
                 const callbackResponse = await org.request(data.callbackUrl, opts);
                 logger.info(JSON.stringify(callbackResponse));
                 
@@ -696,6 +709,122 @@ module.exports = async function (fastify, opts) {
             logger.info(`Error writing file: ${error}`);
             throw error;
         }
+    }
+
+    //create assistant and generate summary
+    async function generateSummaryFromVectorStore(filepath, openai,logger) 
+    {
+        //Step 1: Create Salesforce Data Analyst Assistant
+        const myAssistant = await openai.beta.assistants.create({
+            instructions:
+              "You are an Salesforce Data Analyst, and you have access to files that activities of an account to summarize those activites for Quarterly and monthly basis of each year and provide that output in a JSON format",
+            name: "Salesforce Data Analyst",
+            tools: [{ type: "file_search" }],
+            model: "gpt-4o"
+          });
+
+          logger.info(`Assistant Id is:${myAssistant.id}`);
+
+          //step 2: Create Vector Store
+          const vectorStore = await openai.beta.vectorStores.create({
+            name: "Salesforce_Account_Activites",
+            expires_after: {
+                anchor:1
+            }
+          });
+
+          logger.info(`vector Store Id is:${vectorStore.id}`);
+
+          //step 3: Add created file into vectorstore as filestream
+          const fileStreams = [filepath].map((path) =>
+            fs.createReadStream(path),
+          );
+
+          //step 4: upload files to vectorstores
+          const fileBatch=await openai.beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, fileStreams);
+          logger.info(`fileBatch Status is:${fileBatch.status}`);
+
+          //step 5: update assistant with vector store
+          const assistant=await openai.beta.assistants.update(myAssistant.id, {
+            tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
+          });
+
+          //step 6: create a thread & message
+          const thread = await openai.beta.threads.create({
+            messages: [
+              {
+                role: "user",
+                content:
+                  `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary categorized by:
+
+                    - **Quarterly**
+                    - **Monthly**
+                    - **Weekly**
+
+                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
+
+                    Ensure that:
+                    - Each section includes key themes discussed.
+                    - Summarize the main takeaways from interactions.
+                    - Highlight action points, objections, and outcomes.
+                    - Group activities based on the 'activityDate' field.
+
+                    The final response **MUST** be a single-line, minified JSON object without unnecessary whitespace, newline characters, or special formatting. It should strictly follow this structure:
+
+                    {"quarterly_summary":[{"quarter":"Q1 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"quarter":"Q2 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"weekly_summary":[{"week":"2024-W01","summary":"...","key_topics":["..."],"action_items":["..."]}]}
+                    **Strict Requirements:**
+                    1. **Return only the JSON object** with no explanations or additional text.
+                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
+                    3. The response **must be directly usable with "JSON.parse(response)"**.`,
+                // Attach the new file to the message.
+                attachments: [{ tools: [{ type: "file_search" }] }],
+              },
+            ],
+          });
+
+          logger.info(thread.tool_resources?.file_search);
+
+          //step 7: run threads and get the output
+          const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+            assistant_id: assistant.id,
+          });
+          
+          const messages = await openai.beta.threads.messages.list(thread.id, {
+            run_id: run.id,
+          });
+
+          const summary = messages.data[0].content[0].text.value;
+          logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
+          
+          const message = messages.data[0];
+          let txtoutput;
+          if (message.content[0].type === "text") {
+            const { text } = message.content[0];
+            const { annotations } = text;
+            const citations = [];
+          
+            let index = 0;
+            for (let annotation of annotations) {
+              text.value = text.value.replace(annotation.text, "[" + index + "]");
+              const { file_citation } = annotation;
+              if (file_citation) {
+                const citedFile = await openai.files.retrieve(file_citation.file_id);
+                citations.push("[" + index + "]" + citedFile.filename);
+              }
+              index++;
+            }
+            txtoutput=text.value;
+            logger.info(text.value);
+            logger.info(citations.join("\n"));
+            }
+
+            const deletedVectorStore = await openai.beta.vectorStores.del(
+                vectorStore.id
+              );
+            
+              logger.info(`deletedVectorStore is: ${deletedVectorStore}`);
+
+            return text.value;
     }
 
     // Process Each Chunk with OpenAI API
