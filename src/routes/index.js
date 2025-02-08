@@ -799,7 +799,7 @@ module.exports = async function (fastify, opts) {
                     2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
                     3. The response **must be directly usable with "JSON.parse(response)"**.`,
                 // Attach the new file to the message.
-                attachments: [{ tools: [{ type: "file_search" }] }],
+                attachments: [{ tools: [{ file_id: fileId,type: "file_search" }] }],
               },
             ],
           });
