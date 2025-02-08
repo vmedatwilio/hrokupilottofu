@@ -705,7 +705,7 @@ module.exports = async function (fastify, opts) {
 
         const prompt = `
         Summarize the following ${label} activities:
-        Data: ${JSON.stringify(data.map(a => ({ date: a.activityDate, summary: a.description })))}
+        Data: ${JSON.stringify(data.map(a => ({ date: a.activitydate, summary: a.description })))}
         Include:
         - Summary
         - Key topics discussed
@@ -724,7 +724,7 @@ module.exports = async function (fastify, opts) {
     async function groupActivities( activities = [],logger) {
         const groupedData = {};
         activities.forEach((activity) => {
-            const date = new Date(activity.activityDate);
+            const date = new Date(activity.activitydate);
             const year = date.getFullYear();
             const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
             const month = date.toLocaleString("en-US", { month: "long" });
