@@ -453,6 +453,10 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
                 */
 
+                //fetch all activites of that account    
+                const activities = await fetchRecords(context,logger,query);    
+                logger.info(`Total activities fetched: ${activities.length}`);
+
                 // Step 1: Generate JSON file
                 const filePath = await generateFile(activities,logger);
 
