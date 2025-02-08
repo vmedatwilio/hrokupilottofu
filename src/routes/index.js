@@ -752,7 +752,7 @@ module.exports = async function (fastify, opts) {
           );
 
           //step 4: upload files to vectorstores
-          const fileBatch=await openai.beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, fileStreams);
+          const fileBatch=await openai.beta.vectorStores.fileBatches.createAndPoll(vectorStore.id, fileStreams);
           logger.info(`fileBatch Status is:${fileBatch.status}`);
 
           //step 5: update assistant with vector store
