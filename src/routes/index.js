@@ -413,10 +413,10 @@ module.exports = async function (fastify, opts) {
             {
                 const accountId=data.accountId;
                 const query = `
-                    SELECT Id, Subject,Description,ActivityDate, Status, Type
+                    SELECT Subject,Description,ActivityDate
                     FROM Task
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
-                    ORDER BY ActivityDate DESC limit 15000
+                    ORDER BY ActivityDate DESC
                     `;
                 /*
                 //fetch all activites of that account    
@@ -849,7 +849,7 @@ module.exports = async function (fastify, opts) {
             
               logger.info(`deletedVectorStore is: ${deletedVectorStore}`);
 
-            return text.value;
+            return txtoutput;
     }
 
     // Process Each Chunk with OpenAI API
