@@ -460,11 +460,20 @@ module.exports = async function (fastify, opts) {
                 // Step 1: Generate JSON file
                 const filePath = await generateFile(activities,logger);
 
+                // Step 2: Upload file to OpenAI
+                const uploadResponse = await openai.files.create({
+                    file: fs.createReadStream(filePath),
+                    purpose: "assistants", // Required for storage
+                });
+                    
+                const fileId = uploadResponse.id;
+                logger.info(`File uploaded to OpenAI: ${fileId}`);
+
                 const openai = new OpenAI({
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
 
-                const finalSummary=await generateSummaryFromVectorStore(filePath,openai,logger);
+                const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger);
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
@@ -716,7 +725,7 @@ module.exports = async function (fastify, opts) {
     }
 
     //create assistant and generate summary
-    async function generateSummaryFromVectorStore(filepath, openai,logger) 
+    async function generateSummaryFromVectorStore(fileId, openai,logger) 
     {
         //Step 1: Create Salesforce Data Analyst Assistant
         const myAssistant = await openai.beta.assistants.create({
@@ -740,20 +749,20 @@ module.exports = async function (fastify, opts) {
 
           logger.info(`vector Store Id is:${vectorStore.id}`);
 
-          logger.info(`filepath is:${filepath}`);
+          logger.info(`filepath is:${fileId}`);
 
           //step 3: Add created file into vectorstore as filestream
-          let fileStreams = [];
-
-          fileStreams.push(filepath);
-
-          fileStreams.map((path) =>
-            fs.createReadStream(path),
+          const myVectorStoreFile = await openai.beta.vectorStores.files.create(
+            vectorStore.id,
+            {
+              file_id: fileId
+            }
           );
+          logger.info(`myVectorStoreFile is: ${myVectorStoreFile}`);
 
           //step 4: upload files to vectorstores
-          const fileBatch=await openai.beta.vectorStores.fileBatches.createAndPoll(vectorStore.id, fileStreams);
-          logger.info(`fileBatch Status is:${fileBatch.status}`);
+          //const fileBatch=await openai.beta.vectorStores.fileBatches.createAndPoll(vectorStore.id, fileStreams);
+          //logger.info(`fileBatch Status is:${fileBatch.status}`);
 
           //step 5: update assistant with vector store
           const assistant=await openai.beta.assistants.update(myAssistant.id, {
