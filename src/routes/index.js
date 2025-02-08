@@ -389,6 +389,90 @@ module.exports = async function (fastify, opts) {
             return reply;
     });
 
+
+    fastify.post('/asynchactivitysummarygeneration',
+        // async=true to apply standard response 201 response or provide custom response handler function
+        {config: {salesforce: {async: unitOfWorkResponseHandler}}},
+        async (request, reply) => {
+            const { event, context, logger } = request.sdk;
+            const org = context.org;
+            const dataApi = context.org.dataApi;
+
+            logger.info(`POST /asynchactivitysummarygeneration ${JSON.stringify(event.data || {})}`);
+
+            const validateField = (field, value) => {
+                if (!value) throw new Error(`Please provide ${field}`);
+            }
+
+            // Validate Input
+            const data = event.data;
+            validateField('accountId', data.accountId);
+
+            try 
+            {
+                const accountId=data.accountId;
+                const query = `
+                    SELECT Id, Subject,Description,ActivityDate, Status, Type
+                    FROM Task
+                    WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
+                    ORDER BY ActivityDate DESC
+                    `;
+                //fetch all activites of that account    
+                const activities = await fetchRecords(context,logger,query);    
+                logger.info(`Total activities fetched: ${activities.length}`);
+
+                // Step 1: Group Activites by Quarterly & Monthly
+                const groupedData = groupActivities(activities,logger);
+                
+
+                const openai = new OpenAI({
+                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
+                  });
+
+                  const finalSummary = {};
+
+                  for (const year in groupedData) {
+                      finalSummary[year] = { quarterly: {}, monthly: {}, weekly: {} };
+              
+                      for (const quarter in groupedData[year].quarterly) {
+                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter]);
+                      }
+              
+                      for (const month in groupedData[year].monthly) {
+                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month]);
+                      }
+              
+                      for (const week in groupedData[year].weekly) {
+                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week]);
+                      }
+                  }
+
+                logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
+                
+                // Construct the result by getting the Id from the successful inserts
+                const callbackResponseBody = {
+                    summaryDetails: finalSummary
+                };
+
+                const opts = {
+                    method: 'POST',
+                    body: JSON.stringify(callbackResponseBody),
+                    headers: {'Content-Type': 'application/json'}
+                }
+                const callbackResponse = await org.request(data.callbackUrl, opts);
+                logger.info(JSON.stringify(callbackResponse));
+                
+            }
+            catch (err) 
+            {
+                const errorMessage = `Failed to process summary. Root Cause : ${err.message}`;
+                logger.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            return reply;
+    });
+
      /**
      * Queries for and then returns all activies of the accountId in the invoking org.
      *
@@ -611,6 +695,63 @@ module.exports = async function (fastify, opts) {
             logger.info(`Error writing file: ${error}`);
             throw error;
         }
+    }
+
+    // Process Each Chunk with OpenAI API
+    async function generateSummary( label, data, openai,logger) 
+    {
+        if (!data || data.length === 0) return null; // Skip empty chunks
+        logger.info(`Processing ${label} with ${data.length} activities...`);
+
+        const prompt = `
+        Summarize the following ${label} activities:
+        Data: ${JSON.stringify(data.map(a => ({ date: a.activityDate, summary: a.Description })))}
+        Include:
+        - Summary
+        - Key topics discussed
+        - Action items
+        `;
+
+        const response = await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: prompt,
+        });
+
+        return response.content;
+    }
+
+    // group activities by Quarterly,Monthly,Weekly for each year
+    async function groupActivities( activities = [],logger) {
+        const groupedData = {};
+        activities.forEach((activity) => {
+            const date = new Date(activity.activityDate);
+            const year = date.getFullYear();
+            const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
+            const month = date.toLocaleString("en-US", { month: "long" });
+            const week = `W${Math.ceil(date.getDate() / 7)}`; // Approximate week number
+
+            if (!groupedData[year]) {
+                groupedData[year] = { quarterly: {}, monthly: {}, weekly: {} };
+            }
+
+            if (!groupedData[year].quarterly[quarter]) {
+                groupedData[year].quarterly[quarter] = [];
+            }
+            groupedData[year].quarterly[quarter].push(activity);
+
+            if (!groupedData[year].monthly[month]) {
+                groupedData[year].monthly[month] = [];
+            }
+            groupedData[year].monthly[month].push(activity);
+
+            if (!groupedData[year].weekly[week]) {
+                groupedData[year].weekly[week] = [];
+            }
+            groupedData[year].weekly[week].push(activity);
+        });
+
+        return groupedData;
+
     }
 
     // delect salesforce activites files generated for openAI Processing
