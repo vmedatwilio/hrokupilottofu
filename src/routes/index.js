@@ -733,7 +733,8 @@ module.exports = async function (fastify, opts) {
           const vectorStore = await openai.beta.vectorStores.create({
             name: "Salesforce_Account_Activites",
             expires_after: {
-                anchor:1
+                anchor: "last_active_at",
+                days: 1
             }
           });
 
