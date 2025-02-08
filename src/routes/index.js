@@ -740,8 +740,14 @@ module.exports = async function (fastify, opts) {
 
           logger.info(`vector Store Id is:${vectorStore.id}`);
 
+          logger.info(`filepath is:${filepath}`);
+
           //step 3: Add created file into vectorstore as filestream
-          const fileStreams = [filepath].map((path) =>
+          let fileStreams = [];
+
+          fileStreams.push(filepath);
+
+          fileStreams.map((path) =>
             fs.createReadStream(path),
           );
 
