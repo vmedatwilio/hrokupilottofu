@@ -723,12 +723,15 @@ module.exports = async function (fastify, opts) {
     // group activities by Quarterly,Monthly,Weekly for each year
     async function groupActivities( activities = [],logger) {
         const groupedData = {};
+        logger.info(`groupActivities Total activities fetched: ${JSON.stringify(activities[0])}`);
         activities.forEach((activity) => {
             const date = new Date(activity.activitydate);
             const year = date.getFullYear();
             const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
             const month = date.toLocaleString("en-US", { month: "long" });
             const week = `W${Math.ceil(date.getDate() / 7)}`; // Approximate week number
+
+            logger.info(`groupActivities date year: ${date}${year}`);
 
             if (!groupedData[year]) {
                 groupedData[year] = { quarterly: {}, monthly: {}, weekly: {} };
@@ -749,7 +752,7 @@ module.exports = async function (fastify, opts) {
             }
             groupedData[year].weekly[week].push(activity);
         });
-
+        logger.info(`groupActivities date year: ${groupedData}`);
         return groupedData;
 
     }
