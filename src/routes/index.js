@@ -434,13 +434,13 @@ module.exports = async function (fastify, opts) {
                   for (const year in groupedData) {
                       finalSummary[year] = { quarterly: {}, monthly: {}, weekly: {} };
               
-                      for (const quarter in groupedData[year].quarterly) {
+                      /*for (const quarter in groupedData[year].quarterly) {
                           finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter],openai,logger);
                       }
               
                       for (const month in groupedData[year].monthly) {
                           finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month],openai,logger);
-                      }
+                      }*/
               
                       for (const week in groupedData[year].weekly) {
                           finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week],openai,logger);
