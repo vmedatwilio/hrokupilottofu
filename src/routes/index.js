@@ -461,6 +461,10 @@ module.exports = async function (fastify, opts) {
                 const filePath = await generateFile(activities,logger);
 
                 // Step 2: Upload file to OpenAI
+                const openai = new OpenAI({
+                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
+                  });
+
                 const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
                     purpose: "assistants", // Required for storage
@@ -469,9 +473,7 @@ module.exports = async function (fastify, opts) {
                 const fileId = uploadResponse.id;
                 logger.info(`File uploaded to OpenAI: ${fileId}`);
 
-                const openai = new OpenAI({
-                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
-                  });
+                
 
                 const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger);
                 
