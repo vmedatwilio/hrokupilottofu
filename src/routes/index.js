@@ -420,7 +420,7 @@ module.exports = async function (fastify, opts) {
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
                 logger.info(`Total activities fetched: ${activities.length}`);
-                logger.info(`Total activities fetched: ${activities[0]}`);
+                logger.info(`Total activities fetched: ${JSON.stringify(activities[0])}`);
                 // Step 1: Group Activites by Quarterly & Monthly
                 const groupedData = groupActivities(activities,logger);
                 logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
