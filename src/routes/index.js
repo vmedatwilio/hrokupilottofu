@@ -423,7 +423,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Total activities fetched: ${JSON.stringify(activities[0])}`);
                 // Step 1: Group Activites by Quarterly & Monthly
                 const groupedData = await groupActivities(activities,logger);
-                logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
+                //logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
 
                 const openai = new OpenAI({
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
@@ -435,15 +435,15 @@ module.exports = async function (fastify, opts) {
                       finalSummary[year] = { quarterly: {}, monthly: {}, weekly: {} };
               
                       for (const quarter in groupedData[year].quarterly) {
-                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter]);
+                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter],logger);
                       }
               
                       for (const month in groupedData[year].monthly) {
-                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month]);
+                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month],logger);
                       }
               
                       for (const week in groupedData[year].weekly) {
-                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week]);
+                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week],logger);
                       }
                   }
 
@@ -723,7 +723,7 @@ module.exports = async function (fastify, opts) {
     // group activities by Quarterly,Monthly,Weekly for each year
     async function groupActivities( activities = [],logger) {
         const groupedData = {};
-        logger.info(`groupActivities Total activities fetched: ${JSON.stringify(activities[0])}`);
+        //logger.info(`groupActivities Total activities fetched: ${JSON.stringify(activities[0])}`);
         activities.forEach((activity) => {
             const date = new Date(activity.activitydate);
             const year = date.getFullYear();
@@ -731,7 +731,7 @@ module.exports = async function (fastify, opts) {
             const month = date.toLocaleString("en-US", { month: "long" });
             const week = `W${Math.ceil(date.getDate() / 7)}`; // Approximate week number
 
-            logger.info(`groupActivities date year: ${date}${year}`);
+            //logger.info(`groupActivities date year: ${date}${year}`);
 
             if (!groupedData[year]) {
                 groupedData[year] = { quarterly: {}, monthly: {}, weekly: {} };
@@ -752,7 +752,7 @@ module.exports = async function (fastify, opts) {
             }
             groupedData[year].weekly[week].push(activity);
         });
-        logger.info(`groupActivities date year: ${groupedData}`);
+        //logger.info(`groupActivities date year: ${groupedData}`);
         return groupedData;
 
     }
