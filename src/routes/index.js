@@ -420,7 +420,7 @@ module.exports = async function (fastify, opts) {
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
                 logger.info(`Total activities fetched: ${activities.length}`);
-                logger.info(`Total activities fetched: ${JSON.stringify(activities[0])}`);
+                //logger.info(`Total activities fetched: ${JSON.stringify(activities[0])}`);
                 // Step 1: Group Activites by Quarterly & Monthly
                 const groupedData = await groupActivities(activities,logger);
                 //logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
@@ -435,15 +435,15 @@ module.exports = async function (fastify, opts) {
                       finalSummary[year] = { quarterly: {}, monthly: {}, weekly: {} };
               
                       for (const quarter in groupedData[year].quarterly) {
-                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter],logger);
+                          finalSummary[year].quarterly[quarter] = await generateSummary(`${quarter} of ${year}`, groupedData[year].quarterly[quarter],openai,logger);
                       }
               
                       for (const month in groupedData[year].monthly) {
-                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month],logger);
+                          finalSummary[year].monthly[month] = await generateSummary(`${month} of ${year}`, groupedData[year].monthly[month],openai,logger);
                       }
               
                       for (const week in groupedData[year].weekly) {
-                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week],logger);
+                          finalSummary[year].weekly[week] = await generateSummary(`${week} of ${year}`, groupedData[year].weekly[week],openai,logger);
                       }
                   }
 
