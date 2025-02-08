@@ -775,27 +775,26 @@ module.exports = async function (fastify, opts) {
           const thread = await openai.beta.threads.create({
             messages: [
               {
+                role: "system",
+                content:`You will be provided with list of email activites of an account of the last 4 years in the vector store files and your task is to summarize those email activites based on user given the input for specific duration as follows:
+                - Assume all those activites were completed
+                - Overall summary of those activites by analyzing the description.
+                - Each section includes key themes discussed.
+                - Summarize the main takeaways from interactions.
+                - Highlight action points, objections, and outcomes.
+                - Group activities based on the 'activityDate' field.`,
+              }, 
+              {
                 role: "user",
                 content:
-                  `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a structured JSON summary for last 3 months categorized by:
+                  ` generate a structured JSON summary for last 3 months categorized by:
                     
                     - **Monthly**
-
-                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
-
-                    Ensure that:
-                    - Each section includes key themes discussed.
-                    - Summarize the main takeaways from interactions.
-                    - Highlight action points, objections, and outcomes.
-                    - Group activities based on the 'activityDate' field.
-
+                    
                     The final response **MUST** be a single-line, minified JSON object without unnecessary whitespace, newline characters, or special formatting. It should strictly follow this structure:
 
-                    {"quarterly_summary":[{"quarter":"Q1 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"quarter":"Q2 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}],"weekly_summary":[{"week":"2024-W01","summary":"...","key_topics":["..."],"action_items":["..."]}]}
-                    **Strict Requirements:**
-                    1. **Return only the JSON object** with no explanations or additional text.
-                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
-                    3. The response **must be directly usable with "JSON.parse(response)"**.`,
+                    {"monthly_summary":[{"month":"January 2024","summary":"...","key_topics":["..."],"action_items":["..."]},{"month":"February 2024","summary":"...","key_topics":["..."],"action_items":["..."]}]}
+                    `,
                 // Attach the new file to the message.
                 attachments: [{ 
                         file_id: fileId,
