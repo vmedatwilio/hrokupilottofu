@@ -440,7 +440,7 @@ module.exports = async function (fastify, opts) {
                                 console.log(`Processing: Year ${year}, ${quarter}, Month ${month}`);
                 
                                 // Send each month's data separately
-                                const summary = await generateSummary(groupedData[year][quarter][month]);
+                                const summary = await generateSummary(groupedData[year][quarter][month],openai,logger);
                 
                                 // Store summarized response
                                 finalSummary[year][quarter][month] = summary || 'Error generating summary';
