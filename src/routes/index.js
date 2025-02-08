@@ -699,21 +699,90 @@ module.exports = async function (fastify, opts) {
     }
 
     // Process Each Chunk with OpenAI API
-    async function generateSummary(data, openai,logger) 
+    async function generateSummary(activities, openai,logger) 
     {
-        if (!data || data.length === 0) return null; // Skip empty chunks
+        if (!activities || activities.length === 0) return null; // Skip empty chunks
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4-turbo',
-            messages: [
-                { role: 'system', content: 'You are an AI that summarizes activity data efficiently.' },
-                { role: 'user', content: `Summarize the following activity data:\n\n${JSON.stringify(data.map(a => ({ date: a.activitydate, summary: a.description })))}
-                                        Include:
-                                        - Summary
-                                        - Key topics discussed
-                                        - Action items` }
-            ]
+        logger.info(`Total activities fetched: ${activities.length}`);
+
+        // Step 1: Generate JSON file
+        const filePath = await generateFile(activities,logger);
+
+        // Step 2: Upload file to OpenAI
+        const uploadResponse = await openai.files.create({
+            file: fs.createReadStream(filePath),
+            purpose: "assistants", // Required for storage
         });
+            
+        const fileId = uploadResponse.id;
+        logger.info(`File uploaded to OpenAI: ${fileId}`);
+
+        // Step 3: Create an Assistant (if not created before)
+        const assistant = await openai.beta.assistants.create({
+            name: "Salesforce Summarizer",
+            instructions: "You are an AI that summarizes Salesforce activity data.",
+            tools: [{ type: "file_search" }], // Allows using files
+            model: "gpt-4-turbo",
+        });
+
+        logger.info(`Assistant created: ${assistant.id}`);
+
+        // Step 4: Create a Thread
+        const thread = await openai.beta.threads.create();
+        logger.info(`Thread created: ${thread.id}`);
+
+        // Step 5: Submit Message to Assistant (referencing file)
+        const message = await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a summary
+
+                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
+
+                    Ensure that:
+                    - Each section includes key themes discussed.
+                    - Summarize the main takeaways from interactions.
+                    - Highlight action points, objections, and outcomes.
+                    `,
+                    attachments: [
+                        { 
+                            file_id: fileId,
+                            tools: [{ type: "file_search" }],
+                        }
+                    ],
+                });
+            
+        logger.info(`Message sent: ${message.id}`);
+
+        // Step 6: Run the Assistant
+        const run = await openai.beta.threads.runs.create(thread.id, {
+            assistant_id: assistant.id,
+        });
+            
+        logger.info(`Run started: ${run.id}`);
+
+        // Step 7: Wait for completion (polling for result)
+        let status = "in_progress";
+        let runResult;
+        while (status === "in_progress" || status === "queued") 
+        {
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 sec
+            runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            status = runResult.status;
+        }
+
+        if (status !== "completed") 
+        {
+            throw new Error(`Run failed with status: ${status}`);
+        }
+
+        // Step 8: Retrieve response from messages
+        const messages = await openai.beta.threads.messages.list(thread.id);
+
+
+        const summary = messages.data[0].content[0].text.value;
+        logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
+        logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0].text)}`);
+        logger.info(`Summary received ${summary}`);
 
         return response.choices[0].message.content;
 
