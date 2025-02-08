@@ -712,12 +712,43 @@ module.exports = async function (fastify, opts) {
         - Action items
         `;
 
-        const response = await openai.beta.threads.messages.create(thread.id, {
+        const assistant = await openai.beta.assistants.create({
+            name: "Salesforce Summarizer",
+            instructions: "You are an AI that summarizes Salesforce activity data.",
+            tools: [{ type: "file_search" }], // Allows using files
+            model: "gpt-4-turbo",
+        });
+
+        logger.info(`Assistant created: ${assistant.id}`);
+
+        // ✅ Step 1: Create a Thread
+        const thread = await openai.beta.threads.create();
+
+        // ✅ Step 2: Send Message to the Thread
+        const message = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
             content: prompt,
         });
 
-        return response.content;
+        // ✅ Step 3: Run the Assistant (if using OpenAI Assistants)
+        const run = await openai.beta.threads.runs.create(thread.id, {
+            assistant_id: assistant.id, // Replace with actual Assistant ID
+        });
+
+        // ✅ Step 4: Wait for Completion & Fetch Messages
+        let runStatus;
+        do {
+            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before checking again
+        } while (runStatus.status !== "completed");
+
+        // ✅ Step 5: Get Final Response
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const assistantResponse = messages.data.find(msg => msg.role === "assistant");
+
+        return assistantResponse ? assistantResponse.content : "No response generated.";
+
+        
     }
 
     // group activities by Quarterly,Monthly,Weekly for each year
