@@ -780,11 +780,10 @@ module.exports = async function (fastify, opts) {
 
 
         const summary = messages.data[0].content[0].text.value;
-        logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
-        logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0].text)}`);
+        
         logger.info(`Summary received ${summary}`);
 
-        return response.choices[0].message.content;
+        return summary;
 
     }
 
