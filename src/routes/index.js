@@ -256,7 +256,7 @@ module.exports = async function (fastify, opts) {
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
                     ORDER BY ActivityDate DESC limit 5000
                     `;
-                const groupedData={};    
+                let groupedData={};    
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query,groupedData);    
                 logger.info(`Total activities fetched: ${activities.length}`);
@@ -422,7 +422,7 @@ module.exports = async function (fastify, opts) {
                 const query = queryText;
                 
                 //fetch all activites of that account 
-                const groupedData={};    
+                let groupedData={};    
                 groupedData = await fetchRecords(context,logger,query,groupedData);    
                 logger.info(`Total activities fetched: ${JSON.stringify(groupedData)}`);
 
@@ -621,7 +621,7 @@ module.exports = async function (fastify, opts) {
                     logger.info(`Next Records URL: ${queryResult.nextRecordsUrl}`);
 
                 }*/
-                const groupedData={};    
+                let groupedData={};    
                 const activities = await fetchRecords(context,logger,query,groupedData);    
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
