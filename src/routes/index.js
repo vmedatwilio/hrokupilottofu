@@ -491,7 +491,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary)}`);
                 
 
-                
+                const createsummariesinsalesforce = await createTimileSummarySalesforceRecords( finalSummary,accountId,'Monthly',dataApi,logger)
 
                 /*const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
@@ -507,7 +507,7 @@ module.exports = async function (fastify, opts) {
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
-                    summaryDetails: finalSummary
+                    summaryDetails: {'success':'All Quarterly and Monthly based sumaries were created / updated of this account'}
                 };
 
                 const opts = {
@@ -893,7 +893,9 @@ module.exports = async function (fastify, opts) {
 
                     If there are recorded interactions, summarize key details such as the number of calls/emails, notable discussion points, engagement trends, and any follow-up actions. If no interactions occurred, explicitly state that there were no recorded conversations in that month.
 
-                    Ensure the summary is clear, concise, and formatted in a way that is easy for a salesperson to quickly review and gain insights."*
+                    Ensure the summary is clear, concise, and formatted in a way that is easy for a salesperson to quickly review and gain insights.
+
+                    The output should be formatted in a way that is compatible with a rich text area field in Salesforce. Use bold headers, bullet points, and structured formatting to enhance readability."*
                     `,
                     attachments: [
                         { 
@@ -928,7 +930,42 @@ module.exports = async function (fastify, opts) {
         return summary;
 
     }
+    async function createTimileSummarySalesforceRecords( summaries={},parentId,summaryCategory,dataApi,logger) {
 
+        // Create a unit of work that inserts multiple objects.
+        const uow = dataApi.newUnitOfWork();
+            
+        for (const year in summaries) {
+            logger.info(`Year: ${year}`);
+            for (const month in summaries[year]) {
+                logger.info(`Month: ${month}`);
+                logger.info(`Summary:\n${summaries[year][month]}\n`);
+                let FYQuartervalue=(summaryCategory=='Quarterly')?month:'';
+                let motnhValue=(summaryCategory=='Monthly')?month:'';
+                let summaryValue=summaries[year][month];
+                 uow.registerCreate({
+                    type: 'Timeline_Summary__c',
+                    fields: {
+                        Parent_Id__c : parentId,
+                        Month__c : motnhValue,
+                        Year__c : year,
+                        Summary_Category__c : summaryCategory,
+                        Summary_Details__c : summaryValue,
+                        FY_Quarter__c : FYQuartervalue
+                    }
+                });
+            }
+        }
+        try {
+            // Commit the Unit of Work with all the previous registered operations
+            const response = await dataApi.commitUnitOfWork(uow);
+        }
+        catch (err) {
+            const errorMessage = `Failed to insert record. Root Cause : ${err.message}`;
+            logger.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
     // group activities by Quarterly,Monthly,Weekly for each year
     async function groupActivities( activities = [],logger) {
 
@@ -950,9 +987,9 @@ module.exports = async function (fastify, opts) {
         activities.forEach(activity => {
             const date = new Date(activity.activitydate); // Assuming 'date' is in a valid format
             const year = date.getFullYear();
-            const month = date.toLocaleString('en-US', { month: 'short' });
+            const month = date.toLocaleString('en-US', { month: 'long' });
     
-            const key = `${month} ${year}`;
+            const key = `${month}`;
     
             if (!groupedData[year]) {
                 groupedData[year] = [];
