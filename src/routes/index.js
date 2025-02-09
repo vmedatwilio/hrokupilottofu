@@ -925,6 +925,9 @@ module.exports = async function (fastify, opts) {
             run_id: run.id,
           });
 
+          // Log the full response structure
+         logger.info(`OpenAI msg content Response: ${JSON.stringify(messages, null, 2)}`);
+
           const summary = messages.data[0].content[0].text.value;
           logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
         
