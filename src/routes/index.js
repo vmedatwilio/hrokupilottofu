@@ -891,14 +891,23 @@ module.exports = async function (fastify, opts) {
         // Step 5: Submit Message to Assistant (referencing file)
         const message = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: `*"You are an AI assistant analyzing sales activity data. The provided file contains a list of email and call activities for a given month, associated with a specific sales account. Your task is to generate a concise summary that helps the Account Executive (AE) understand customer interactions within that month.
+            content: `Generate a monthly summary of customer interactions in HTML format, suitable for a Salesforce Rich Text Area field. Use the following sales activity data:
+                    - **Month & Year:** [DYNAMIC: Month YYYY]  
+                    - **Total Emails Sent:** [DYNAMIC: Number]  
+                    - **Content Focus:** [DYNAMIC: Brief summary of email content]  
+                    - **Tone and Purpose:** [DYNAMIC: Describe the general tone, e.g., promotional, informative]  
+                    - **Total Calls Made:** [DYNAMIC: Number]  
+                    - **Engagement Trends:**  
+                    - **Response Received:** [DYNAMIC: Yes/No or details]  
+                    - **Follow-Up Actions:**  
+                        - [DYNAMIC: Next steps, e.g., "Awaiting response from the customer."]  
+                        - [DYNAMIC: Recommended follow-ups, e.g., "Send a follow-up email in 7 days."]  
 
-                    If there are recorded interactions, summarize key details such as the number of calls/emails, notable discussion points, engagement trends, and any follow-up actions. If no interactions occurred, explicitly state that there were no recorded conversations in that month.
-
-                    Ensure the summary is clear, concise, and formatted in a way that is easy for a salesperson to quickly review and gain insights.
-
-                    The output should be formatted in a way that is compatible with a rich text area field in Salesforce. Use bold headers, bullet points, and structured formatting to enhance readability."*
-                    `,
+                    Format the response as **HTML** with:
+                    - **Bold headings** ('<b>')
+                    - **Line breaks** ('<br>') for spacing  
+                    - **Bulleted lists** ('<ul><li>') for organization  
+                    - **No unnecessary explanations**—just return the HTML output.`,
                     attachments: [
                         { 
                             file_id: fileId,
