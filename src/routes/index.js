@@ -1050,7 +1050,7 @@ module.exports = async function (fastify, opts) {
             //activities.push(...queryResult.records.map(rec => rec.fields));
 
             queryResult.records.forEach(activity => {
-                const date = new Date(activity.activitydate); // Assuming 'date' is in a valid format
+                const date = new Date(activity.fields.activitydate); // Assuming 'date' is in a valid format
                 const year = date.getFullYear();
                 const month = date.toLocaleString('en-US', { month: 'long' });
         
@@ -1067,7 +1067,7 @@ module.exports = async function (fastify, opts) {
                     groupedData[year].push(monthEntry);
                 }
         
-                monthEntry[key].push(activity);
+                monthEntry[key].push(activity.fields.description);
             });
 
             if (queryResult.nextRecordsUrl) {
