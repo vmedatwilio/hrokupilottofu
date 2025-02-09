@@ -957,7 +957,7 @@ module.exports = async function (fastify, opts) {
             monthEntry[key].push(activity);
         });
 
-        logger.info(`grouped data is ${groupedData}`);
+        logger.info(`grouped data is ${JSON.stringify(groupedData)}`);
 
         return groupedData;
     }
