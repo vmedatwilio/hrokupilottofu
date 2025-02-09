@@ -419,22 +419,34 @@ module.exports = async function (fastify, opts) {
                 const assisstantPrompt=data.assisstantPrompt;
                 const userPrompt=data.userPrompt;
                 const query = queryText;
-                /*
+                
                 //fetch all activites of that account    
                 const activities = await fetchRecords(context,logger,query);    
                 logger.info(`Total activities fetched: ${activities.length}`);
-                //logger.info(`Total activities fetched: ${JSON.stringify(activities[0])}`);
-                // Step 1: Group Activites by Quarterly & Monthly
+
+                
+                // Step 1: Group Activites by Yearly & its Monthly
                 const groupedData = await groupActivities(activities,logger);
+
                 //logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
 
                 const openai = new OpenAI({
                     apiKey: process.env.OPENAI_API_KEY, // Read from .env
                   });
+                
+                // Step 3: Create an Assistant (if not created before)
+                const assistant = await openai.beta.assistants.create({
+                    name: "Salesforce Summarizer",
+                    instructions: "You are an AI that summarizes Salesforce activity data.",
+                    tools: [{ type: "file_search" }], // Allows using files
+                    model: "gpt-4-turbo",
+                });
+
+                logger.info(`Assistant created: ${assistant.id}`);
 
                   const finalSummary = {};
 
-                    for (const year in groupedData) 
+                    /*for (const year in groupedData) 
                     {
                         finalSummary[year] = {};
                         for (const quarter in groupedData[year]) {
@@ -449,24 +461,25 @@ module.exports = async function (fastify, opts) {
                                 finalSummary[year][quarter][month] = summary || 'Error generating summary';
                             }
                         }
+                    }*/
+                    for (const year in groupedData) {
+                        logger.info(`Year: ${year}`);
+                        finalSummary[year] = {};
+                        for (const month in groupedData[year]) {
+                            const tmepActivities = groupedData[year][month];
+                            logger.info(`  ${month}: ${tmepActivities.length} activities`);
+                            const summary = await generateSummary(tmepActivities,openai,logger,assistant);
+                            finalSummary[year][month] = summary;
+                
+                        }
                     }
 
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
-                */
+                
 
-                //fetch all activites of that account    
-                const activities = await fetchRecords(context,logger,query);    
-                logger.info(`Total activities fetched: ${activities.length}`);
+                
 
-                // Step 1: Generate JSON file
-                const filePath = await generateFile(activities,logger);
-
-                // Step 2: Upload file to OpenAI
-                const openai = new OpenAI({
-                    apiKey: process.env.OPENAI_API_KEY, // Read from .env
-                  });
-
-                const uploadResponse = await openai.files.create({
+                /*const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
                     purpose: "assistants", // Required for storage
                 });
@@ -476,7 +489,7 @@ module.exports = async function (fastify, opts) {
 
                 
 
-                const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger,assisstantPrompt,userPrompt);
+                const finalSummary=await generateSummaryFromVectorStore(fileId,openai,logger,assisstantPrompt,userPrompt);*/
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
@@ -837,7 +850,7 @@ module.exports = async function (fastify, opts) {
     }
 
     // Process Each Chunk with OpenAI API
-    async function generateSummary(activities, openai,logger) 
+    async function generateSummary(activities, openai,logger,assistant) 
     {
         if (!activities || activities.length === 0) return null; // Skip empty chunks
 
@@ -854,16 +867,6 @@ module.exports = async function (fastify, opts) {
             
         const fileId = uploadResponse.id;
         logger.info(`File uploaded to OpenAI: ${fileId}`);
-
-        // Step 3: Create an Assistant (if not created before)
-        const assistant = await openai.beta.assistants.create({
-            name: "Salesforce Summarizer",
-            instructions: "You are an AI that summarizes Salesforce activity data.",
-            tools: [{ type: "file_search" }], // Allows using files
-            model: "gpt-4-turbo",
-        });
-
-        logger.info(`Assistant created: ${assistant.id}`);
 
         // Step 4: Create a Thread
         const thread = await openai.beta.threads.create();
@@ -892,34 +895,24 @@ module.exports = async function (fastify, opts) {
         logger.info(`Message sent: ${message.id}`);
 
         // Step 6: Run the Assistant
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
             assistant_id: assistant.id,
         });
             
         logger.info(`Run started: ${run.id}`);
 
-        // Step 7: Wait for completion (polling for result)
-        let status = "in_progress";
-        let runResult;
-        while (status === "in_progress" || status === "queued") 
-        {
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 sec
-            runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-            status = runResult.status;
-        }
+        const messages = await openai.beta.threads.messages.list(thread.id, {
+            run_id: run.id,
+          });
 
-        if (status !== "completed") 
-        {
-            throw new Error(`Run failed with status: ${status}`);
-        }
-
-        // Step 8: Retrieve response from messages
-        const messages = await openai.beta.threads.messages.list(thread.id);
-
-
-        const summary = messages.data[0].content[0].text.value;
+          const summary = messages.data[0].content[0].text.value;
+          logger.info(`Summary received ${JSON.stringify(messages.data[0].content[0])}`);
         
-        logger.info(`Summary received ${summary}`);
+          logger.info(`Summary received ${summary}`);
+
+          const file = await openai.files.del(fileId);
+
+          logger.info(file);
 
         return summary;
 
@@ -930,7 +923,7 @@ module.exports = async function (fastify, opts) {
 
         const groupedData = {};
 
-        activities.forEach(activity => {
+        /*activities.forEach(activity => {
             const date = new Date(activity.activitydate); // Assuming activity has a timestamp
             const year = date.getFullYear();
             const month = date.getMonth() + 1; // JavaScript months are 0-indexed
@@ -941,6 +934,27 @@ module.exports = async function (fastify, opts) {
             if (!groupedData[year][`Q${quarter}`][month]) groupedData[year][`Q${quarter}`][month] = [];
 
             groupedData[year][`Q${quarter}`][month].push(activity);
+        });*/
+
+        activities.forEach(activity => {
+            const date = new Date(activity.activitydate); // Assuming 'date' is in a valid format
+            const year = date.getFullYear();
+            const month = date.toLocaleString('en-US', { month: 'short' });
+    
+            const key = `${month} ${year}`;
+    
+            if (!groupedData[year]) {
+                groupedData[year] = [];
+            }
+    
+            // Find the existing month entry or create a new one
+            let monthEntry = groupedData[year].find(entry => entry[key]);
+            if (!monthEntry) {
+                monthEntry = { [key]: [] };
+                groupedData[year].push(monthEntry);
+            }
+    
+            monthEntry[key].push(activity);
         });
 
         logger.info(`grouped data is ${groupedData}`);
