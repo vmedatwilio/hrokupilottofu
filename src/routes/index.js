@@ -256,8 +256,9 @@ module.exports = async function (fastify, opts) {
                     WHERE WhatId = '${accountId}' AND ActivityDate >= LAST_N_YEARS:4
                     ORDER BY ActivityDate DESC limit 5000
                     `;
+                const groupedData={};    
                 //fetch all activites of that account    
-                const activities = await fetchRecords(context,logger,query);    
+                const activities = await fetchRecords(context,logger,query,groupedData);    
                 logger.info(`Total activities fetched: ${activities.length}`);
 
                 // Step 1: Generate JSON file
@@ -420,8 +421,9 @@ module.exports = async function (fastify, opts) {
                 const userPrompt=data.userPrompt;
                 const query = queryText;
                 
-                //fetch all activites of that account    
-                const groupedData = await fetchRecords(context,logger,query);    
+                //fetch all activites of that account 
+                const groupedData={};    
+                groupedData = await fetchRecords(context,logger,query,groupedData);    
                 logger.info(`Total activities fetched: ${JSON.stringify(groupedData)}`);
 
                 
@@ -619,8 +621,8 @@ module.exports = async function (fastify, opts) {
                     logger.info(`Next Records URL: ${queryResult.nextRecordsUrl}`);
 
                 }*/
-
-                const activities = await fetchRecords(context,logger,query);    
+                const groupedData={};    
+                const activities = await fetchRecords(context,logger,query,groupedData);    
                 
                 logger.info(`Total activities fetched: ${activities.length}`);
 
@@ -1038,7 +1040,7 @@ module.exports = async function (fastify, opts) {
     }
 
     // Fetch records from Salesforce
-    async function fetchRecords(context, logger, queryOrUrl, groupedData = {}, isFirstIteration = true) {
+    async function fetchRecords(context, logger, queryOrUrl, groupedData, isFirstIteration = true) {
         
         const org = context.org;
         try {
