@@ -891,23 +891,19 @@ module.exports = async function (fastify, opts) {
         // Step 5: Submit Message to Assistant (referencing file)
         const message = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: `Generate a monthly summary of customer interactions in HTML format, suitable for a Salesforce Rich Text Area field. Use the following sales activity data:
-                    - **Month & Year:** [DYNAMIC: Month YYYY]  
-                    - **Total Emails Sent:** [DYNAMIC: Number]  
-                    - **Content Focus:** [DYNAMIC: Brief summary of email content]  
-                    - **Tone and Purpose:** [DYNAMIC: Describe the general tone, e.g., promotional, informative]  
-                    - **Total Calls Made:** [DYNAMIC: Number]  
-                    - **Engagement Trends:**  
-                    - **Response Received:** [DYNAMIC: Yes/No or details]  
-                    - **Follow-Up Actions:**  
-                        - [DYNAMIC: Next steps, e.g., "Awaiting response from the customer."]  
-                        - [DYNAMIC: Recommended follow-ups, e.g., "Send a follow-up email in 7 days."]  
+            content: `You are an AI assistant generating structured sales activity summaries for Salesforce.
 
-                    Format the response as **HTML** with:
-                    - **Bold headings** ('<b>')
-                    - **Line breaks** ('<br>') for spacing  
-                    - **Bulleted lists** ('<ul><li>') for organization  
-                    - **No unnecessary explanations**—just return the HTML output.`,
+                    ### **Instructions**  
+                    - Analyze the provided sales activity data and generate a **monthly summary** dynamically.  
+                    - Identify the **month & year** from the activity dates.  
+                    - Count and report the **total emails sent** and **total calls made**.  
+                    - Extract the **key themes of customer interactions** based on email content.  
+                    - Describe the **tone and purpose** of the interactions.  
+                    - Identify any **response trends** and suggest relevant **follow-up actions**.  
+                    - Format the summary in **HTML** suitable for a Salesforce **Rich Text Area field**.  
+                    - Return **only the formatted summary** without explanations.  
+
+                    ### **Sales Activity Data **`,
                     attachments: [
                         { 
                             file_id: fileId,
