@@ -471,7 +471,8 @@ module.exports = async function (fastify, opts) {
                                     logger.info(`  Month: ${month}`);
                                     const tmpactivites = monthObj[month];
                                     logger.info(`  ${month}: ${tmpactivites.length} activities`);
-                                    finalSummary[year][month] = tmpactivites;
+                                    const summary = await generateSummary(tmpactivites,openai,logger,assistant);
+                                    finalSummary[year][month] = summary;
                                 }
                             }
                         }
@@ -888,14 +889,11 @@ module.exports = async function (fastify, opts) {
         // Step 5: Submit Message to Assistant (referencing file)
         const message = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: `You are an AI that summarizes Salesforce activity data into a structured format. Your task is to analyze the uploaded file, which contains sales rep conversations with prospects, and generate a summary
+            content: `*"You are an AI assistant analyzing sales activity data. The provided file contains a list of email and call activities for a given month, associated with a specific sales account. Your task is to generate a concise summary that helps the Account Executive (AE) understand customer interactions within that month.
 
-                    If there are insufficient records for any category, **still generate that section** and mention "Insufficient data" instead of omitting it.
+                    If there are recorded interactions, summarize key details such as the number of calls/emails, notable discussion points, engagement trends, and any follow-up actions. If no interactions occurred, explicitly state that there were no recorded conversations in that month.
 
-                    Ensure that:
-                    - Each section includes key themes discussed.
-                    - Summarize the main takeaways from interactions.
-                    - Highlight action points, objections, and outcomes.
+                    Ensure the summary is clear, concise, and formatted in a way that is easy for a salesperson to quickly review and gain insights."*
                     `,
                     attachments: [
                         { 
