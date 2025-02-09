@@ -421,12 +421,12 @@ module.exports = async function (fastify, opts) {
                 const query = queryText;
                 
                 //fetch all activites of that account    
-                const activities = await fetchRecords(context,logger,query);    
-                logger.info(`Total activities fetched: ${activities.length}`);
+                const groupedData = await fetchRecords(context,logger,query);    
+                //logger.info(`Total activities fetched: ${activities.length}`);
 
                 
                 // Step 1: Group Activites by Yearly & its Monthly
-                const groupedData = await groupActivities(activities,logger);
+                //const groupedData = await groupActivities(activities,logger);
 
                 //logger.info(`groupedData activities fetched: ${JSON.stringify(groupedData)}`);
 
@@ -1038,21 +1038,42 @@ module.exports = async function (fastify, opts) {
     }
 
     // Fetch records from Salesforce
-    async function fetchRecords(context, logger, queryOrUrl, activities = [], isFirstIteration = true) {
+    async function fetchRecords(context, logger, queryOrUrl, groupedData = {}, isFirstIteration = true) {
         
         const org = context.org;
         try {
             const queryResult = isFirstIteration ? await org.dataApi.query(queryOrUrl) : await org.dataApi.queryMore(queryOrUrl);
             logger.info(`Fetched ${queryResult.records.length} records`);
 
-            activities.push(...queryResult.records.map(rec => rec.fields));
+            //activities.push(...queryResult.records.map(rec => rec.fields));
+
+            queryResult.records.forEach(activity => {
+                const date = new Date(activity.activitydate); // Assuming 'date' is in a valid format
+                const year = date.getFullYear();
+                const month = date.toLocaleString('en-US', { month: 'long' });
+        
+                const key = `${month}`;
+        
+                if (!groupedData[year]) {
+                    groupedData[year] = [];
+                }
+        
+                // Find the existing month entry or create a new one
+                let monthEntry = groupedData[year].find(entry => entry[key]);
+                if (!monthEntry) {
+                    monthEntry = { [key]: [] };
+                    groupedData[year].push(monthEntry);
+                }
+        
+                monthEntry[key].push(activity);
+            });
 
             if (queryResult.nextRecordsUrl) {
                 logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
-                return fetchRecords(context, logger,queryResult, activities,false); // Recursive call
+                return fetchRecords(context, logger,queryResult, groupedData,false); // Recursive call
             } else {
-                logger.info(`All records fetched: ${activities.length}`);
-                return activities;
+                logger.info(`All records fetched:`);
+                return groupedData;
             }
         } catch (error) {
             logger.info(`Error fetching activities: ${error.message}`);
