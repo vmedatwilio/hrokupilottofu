@@ -473,7 +473,7 @@ module.exports = async function (fastify, opts) {
                                     logger.info(`  Month: ${month}`);
                                     const tmpactivites = monthObj[month];
                                     logger.info(`  ${month}: ${tmpactivites.length} activities`);
-                                    const summary = await generateSummary(tmpactivites,openai,logger,assistant);
+                                    const summary = await generateSummary(tmpactivites,openai,logger,assistant,userPrompt);
                                     finalSummary[year][month] = summary;
                                 }
                             }
@@ -866,7 +866,7 @@ module.exports = async function (fastify, opts) {
     }
 
     // Process Each Chunk with OpenAI API
-    async function generateSummary(activities, openai,logger,assistant) 
+    async function generateSummary(activities, openai,logger,assistant,userPrompt) 
     {
         if (!activities || activities.length === 0) return null; // Skip empty chunks
 
@@ -891,19 +891,7 @@ module.exports = async function (fastify, opts) {
         // Step 5: Submit Message to Assistant (referencing file)
         const message = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: `You are an AI assistant generating structured sales activity summaries for Salesforce.
-
-                    ### **Instructions**  
-                    - Analyze the provided sales activity data and generate a **monthly summary** dynamically.  
-                    - Identify the **month & year** from the activity dates.  
-                    - Count and report the **total emails sent** and **total calls made**.  
-                    - Extract the **key themes of customer interactions** based on email content.  
-                    - Describe the **tone and purpose** of the interactions.  
-                    - Identify any **response trends** and suggest relevant **follow-up actions**.  
-                    - Format the summary in **HTML** suitable for a Salesforce **Rich Text Area field**.  
-                    - Return **only the formatted summary** without explanations.  
-
-                    ### **Sales Activity Data **`,
+            content:userPrompt,
                     attachments: [
                         { 
                             file_id: fileId,
