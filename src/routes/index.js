@@ -422,7 +422,7 @@ module.exports = async function (fastify, opts) {
                 
                 //fetch all activites of that account    
                 const groupedData = await fetchRecords(context,logger,query);    
-                //logger.info(`Total activities fetched: ${activities.length}`);
+                logger.info(`Total activities fetched: ${JSON.stringify(groupedData)}`);
 
                 
                 // Step 1: Group Activites by Yearly & its Monthly
@@ -1072,7 +1072,7 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
                 return fetchRecords(context, logger,queryResult, groupedData,false); // Recursive call
             } else {
-                logger.info(`All records fetched:`);
+                logger.info(`All records fetched: ${JSON.stringify(groupedData)}`);
                 return groupedData;
             }
         } catch (error) {
