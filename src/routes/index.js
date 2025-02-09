@@ -462,7 +462,20 @@ module.exports = async function (fastify, opts) {
                             }
                         }
                     }*/
-                    for (const year in groupedData) {
+                        for (const year in groupedData) {
+                            logger.info(`Year: ${year}`);
+                            finalSummary[year] = {};
+                            // Iterate through the months inside each year
+                            for (const monthObj of groupedData[year]) {
+                                for (const month in monthObj) {
+                                    logger.info(`  Month: ${month}`);
+                                    const tmpactivites = monthObj[month];
+                                    logger.info(`  ${month}: ${tmpactivites.length} activities`);
+                                    finalSummary[year][month] = tmpactivites;
+                                }
+                            }
+                        }
+                    /*for (const year in groupedData) {
                         logger.info(`Year: ${year}`);
                         finalSummary[year] = {};
                         for (const month in groupedData[year]) {
@@ -472,9 +485,9 @@ module.exports = async function (fastify, opts) {
                             finalSummary[year][month] = summary;
                 
                         }
-                    }
+                    }*/
 
-                logger.info(`Final Summary received ${JSON.stringify(finalSummary, null, 2)}`);
+                logger.info(`Final Summary received ${JSON.stringify(finalSummary)}`);
                 
 
                 
