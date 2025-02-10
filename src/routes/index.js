@@ -493,8 +493,15 @@ module.exports = async function (fastify, opts) {
                 logger.info(`Final Summary received ${JSON.stringify(finalSummary)}`);
                 
 
-                const createsummariesinsalesforce = await createTimileSummarySalesforceRecords( finalSummary,accountId,'Monthly',dataApi,logger)
+                const createmonthlysummariesinsalesforce = await createTimileSummarySalesforceRecords( finalSummary,accountId,'Monthly',dataApi,logger);
 
+                const Quarterlysummary = await generateSummary(finalSummary,openai,logger,assistant,`I have a JSON file containing monthly summaries of an account, where data is structured by year and then by month. Please generate a quarterly summary for each year while considering that the fiscal quarter starts in January. The output should be in JSON format, maintaining the same structure but grouped by quarters instead of months. Ensure the summary for each quarter appropriately consolidates the insights from the respective months.`);
+                                  
+                logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
+
+                const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( Quarterlysummary,accountId,'Quarterly',dataApi,logger);
+
+                
                 /*const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
                     purpose: "assistants", // Required for storage
@@ -509,7 +516,7 @@ module.exports = async function (fastify, opts) {
                 
                 // Construct the result by getting the Id from the successful inserts
                 const callbackResponseBody = {
-                    summaryDetails: {'success':'All Quarterly and Monthly based sumaries were created / updated of this account'}
+                    summaryDetails: `{"success":"All Quarterly and Monthly based sumaries were created / updated of this account"}`
                 };
 
                 const opts = {
