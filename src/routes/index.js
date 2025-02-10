@@ -1072,7 +1072,7 @@ module.exports = async function (fastify, opts) {
         
                 monthEntry[key].push(activity.fields.description);
             });
-
+            logger.info(`groupedData: ${JSON.stringify(groupedData)}`);
             if (queryResult.nextRecordsUrl) {
                 //logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
                 return fetchRecords(context, logger,queryResult, groupedData,false); // Recursive call
