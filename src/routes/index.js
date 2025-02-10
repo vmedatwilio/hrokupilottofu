@@ -473,7 +473,7 @@ module.exports = async function (fastify, opts) {
                                     logger.info(`  Month: ${month}`);
                                     const tmpactivites = monthObj[month];
                                     logger.info(`  ${month}: ${tmpactivites.length} activities`);
-                                    const summary = await generateSummary(tmpactivites,openai,logger,assistant,userPrompt);
+                                    const summary = await generateSummary(tmpactivites,openai,logger,assistant,userPrompt.replace('{{YearMonth}}',`${month} ${year}`));
                                     finalSummary[year][month] = summary;
                                 }
                             }
@@ -504,21 +504,13 @@ module.exports = async function (fastify, opts) {
                     4. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
                     5. The response **must be directly usable with "JSON.parse(response)"**.`);
                                   
-                logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
+                //logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
 
                 const quaertersums=JSON.parse(Quarterlysummary);
                 logger.info(`Quarterlysummary received ${JSON.stringify(quaertersums)}`);
 
-                for (const year in quaertersums) {
-                    logger.info(`Year: ${year}`);
-                    for (const month in quaertersums[year]) {
-                        logger.info(`Month: ${month}`);
-                    }
-                }
+                const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( JSON.parse(quaertersums),accountId,'Quarterly',dataApi,logger);
 
-                //const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( JSON.parse(Quarterlysummary),accountId,'Quarterly',dataApi,logger);
-
-                
                 /*const uploadResponse = await openai.files.create({
                     file: fs.createReadStream(filePath),
                     purpose: "assistants", // Required for storage
