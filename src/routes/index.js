@@ -424,7 +424,7 @@ module.exports = async function (fastify, opts) {
                 //fetch all activites of that account 
                 let groupedData={};    
                 groupedData = await fetchRecords(context,logger,query,groupedData);    
-                logger.info(`Total activities fetched: ${JSON.stringify(groupedData)}`);
+                //logger.info(`Total activities fetched: ${JSON.stringify(groupedData)}`);
 
                 
                 // Step 1: Group Activites by Yearly & its Monthly
@@ -1048,7 +1048,7 @@ module.exports = async function (fastify, opts) {
         const org = context.org;
         try {
             const queryResult = isFirstIteration ? await org.dataApi.query(queryOrUrl) : await org.dataApi.queryMore(queryOrUrl);
-            logger.info(`Fetched ${queryResult.records.length} records`);
+            //logger.info(`Fetched ${queryResult.records.length} records`);
 
             //activities.push(...queryResult.records.map(rec => rec.fields));
 
@@ -1074,10 +1074,10 @@ module.exports = async function (fastify, opts) {
             });
 
             if (queryResult.nextRecordsUrl) {
-                logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
+                //logger.info(`Fetching more records from ${queryResult.nextRecordsUrl}`);
                 return fetchRecords(context, logger,queryResult, groupedData,false); // Recursive call
             } else {
-                logger.info(`All records fetched: ${JSON.stringify(groupedData)}`);
+                //logger.info(`All records fetched: ${JSON.stringify(groupedData)}`);
                 return groupedData;
             }
         } catch (error) {
