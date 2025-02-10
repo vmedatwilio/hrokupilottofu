@@ -498,13 +498,15 @@ module.exports = async function (fastify, opts) {
                 const Quarterlysummary = await generateSummary(finalSummary,openai,logger,assistant,
                     `I have a JSON file containing monthly summaries of an account, where data is structured by year and then by month. Please generate a quarterly summary for each year while considering that the fiscal quarter starts in January. The output should be in JSON format, maintaining the same structure but grouped by quarters instead of months. Ensure the summary for each quarter appropriately consolidates the insights from the respective months.
                     **Strict Requirements:**
-                    1. **Return only the JSON object** with no explanations or additional text.
-                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
-                    3. The response **must be directly usable with "JSON.parse(response)"**.`);
+                    1. **Summarize all three months into a single quarterly summary. Do not retain individual months as separate keys. The summary should combine key themes, tone, response trends, and follow-up actions from all months within the quarter.
+                    2. **Return only the JSON object** with no explanations or additional text.
+                    3. JSON Structure should be: {"year": {"Q1": "quarterly summary", "Q2": "quarterly summary", ...}}
+                    4. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
+                    5. The response **must be directly usable with "JSON.parse(response)"**.`);
                                   
                 logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
 
-                //const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( Quarterlysummary,accountId,'Quarterly',dataApi,logger);
+                const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( Quarterlysummary,accountId,'Quarterly',dataApi,logger);
 
                 
                 /*const uploadResponse = await openai.files.create({
