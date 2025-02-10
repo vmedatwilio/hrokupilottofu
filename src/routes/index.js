@@ -495,7 +495,12 @@ module.exports = async function (fastify, opts) {
 
                 const createmonthlysummariesinsalesforce = await createTimileSummarySalesforceRecords( finalSummary,accountId,'Monthly',dataApi,logger);
 
-                const Quarterlysummary = await generateSummary(finalSummary,openai,logger,assistant,`I have a JSON file containing monthly summaries of an account, where data is structured by year and then by month. Please generate a quarterly summary for each year while considering that the fiscal quarter starts in January. The output should be in JSON format, maintaining the same structure but grouped by quarters instead of months. Ensure the summary for each quarter appropriately consolidates the insights from the respective months.`);
+                const Quarterlysummary = await generateSummary(finalSummary,openai,logger,assistant,
+                    `I have a JSON file containing monthly summaries of an account, where data is structured by year and then by month. Please generate a quarterly summary for each year while considering that the fiscal quarter starts in January. The output should be in JSON format, maintaining the same structure but grouped by quarters instead of months. Ensure the summary for each quarter appropriately consolidates the insights from the respective months.
+                    **Strict Requirements:**
+                    1. **Return only the JSON object** with no explanations or additional text.
+                    2. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
+                    3. The response **must be directly usable with "JSON.parse(response)"**.`);
                                   
                 logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
 
@@ -875,10 +880,18 @@ module.exports = async function (fastify, opts) {
     // Process Each Chunk with OpenAI API
     async function generateSummary(activities, openai,logger,assistant,userPrompt) 
     {
-        if (!activities || activities.length === 0) return null; // Skip empty chunks
-
-        logger.info(`Total activities fetched: ${activities.length}`);
-
+        
+            if (Array.isArray(activities)) 
+            {
+                logger.info("Array / List of objects");
+                if (!activities || activities.length === 0) return null; // Skip empty chunks
+                logger.info(`Total activities fetched: ${activities.length}`);
+            } 
+            else if (typeof activities === "object" && activities !== null) 
+            {
+                logger.info("JSON/Object");
+            }
+ 
         // Step 1: Generate JSON file
         const filePath = await generateFile(activities,logger);
 
