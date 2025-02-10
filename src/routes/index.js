@@ -499,7 +499,7 @@ module.exports = async function (fastify, opts) {
                                   
                 logger.info(`Quarterlysummary received ${JSON.stringify(Quarterlysummary)}`);
 
-                const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( Quarterlysummary,accountId,'Quarterly',dataApi,logger);
+                //const createQuarterlysummariesinsalesforce = await createTimileSummarySalesforceRecords( Quarterlysummary,accountId,'Quarterly',dataApi,logger);
 
                 
                 /*const uploadResponse = await openai.files.create({
