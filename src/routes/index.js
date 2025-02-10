@@ -945,7 +945,7 @@ module.exports = async function (fastify, opts) {
 
           logger.info(file);
 
-        return summary;
+        return summary.replace(/(\[\[\d+†source\]\]|\【\d+:\d+†source\】)/g, '');
 
     }
     async function createTimileSummarySalesforceRecords( summaries={},parentId,summaryCategory,dataApi,logger) {
