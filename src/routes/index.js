@@ -515,7 +515,7 @@ module.exports = async function (fastify, opts) {
                     `I have a JSON file containing monthly summaries of an account, where data is structured by year and then by month. Please generate a quarterly summary for each year while considering that the fiscal quarter starts in January. The output should be in JSON format, maintaining the same structure but grouped by quarters instead of months. Ensure the summary for each quarter appropriately consolidates the insights from the respective months.
                     **Strict Requirements:**
                     1. **Summarize all three months into a single quarterly summary. Do not retain individual months as separate keys. The summary should combine key themes, tone, response trends, and follow-up actions from all months within the quarter.
-                    2. **Return only the JSON object** with no explanations or additional text.
+                    2. **Return only the JSON object** with no explanations, Markdown formatting, or extra characters. Do not wrap the JSON in triple backticks or include "json" as a specifier.
                     3. JSON Structure should be: {"year": {"Q1": {"summary":"quarterly summary","count":"total count of all three months of that quarter from JSON file by summing up the count i.e 200","startdate":"start date of the Quarter"}, "Q2": {"summary":"quarterly summary","count":"total count of all three months of that quarter from JSON file by summing up the count ex:- 200 as total count","startdate":"start date of the Quarter"}, ...}}
                     4. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
                     5. The response **must be directly usable with "JSON.parse(response)"**.`);
