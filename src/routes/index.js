@@ -993,7 +993,8 @@ module.exports = async function (fastify, opts) {
                         Summary_Details__c : summaryValue,
                         FY_Quarter__c : FYQuartervalue,
                         Month_Date__c:startdate,
-                        Number_of_Records__c:count
+                        Number_of_Records__c:count,
+                        Account__c:parentId
                     }
                 });
             }
