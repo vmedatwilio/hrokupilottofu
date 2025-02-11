@@ -464,6 +464,20 @@ module.exports = async function (fastify, opts) {
                             }
                         }
                     }*/
+                        const monthMap = {
+                            january: 0,
+                            february: 1,
+                            march: 2,
+                            april: 3,
+                            may: 4,
+                            june: 5,
+                            july: 6,
+                            august: 7,
+                            september: 8,
+                            october: 9,
+                            november: 10,
+                            december: 11
+                        };
                         for (const year in groupedData) {
                             logger.info(`Year: ${year}`);
                             finalSummary[year] = {};
@@ -473,8 +487,10 @@ module.exports = async function (fastify, opts) {
                                     logger.info(`  Month: ${month}`);
                                     const tmpactivites = monthObj[month];
                                     logger.info(`  ${month}: ${tmpactivites.length} activities`);
+                                    const monthIndex = monthMap[month.toLowerCase()];
+                                    const startdate = new Date(year, monthIndex, 1);
                                     const summary = await generateSummary(tmpactivites,openai,logger,assistant,userPrompt.replace('{{YearMonth}}',`${month} ${year}`));
-                                    finalSummary[year][month] = summary;
+                                    finalSummary[year][month] = {"summary":summary,"count":tmpactivites.length,"startdate":startdate};
                                 }
                             }
                         }
@@ -500,7 +516,7 @@ module.exports = async function (fastify, opts) {
                     **Strict Requirements:**
                     1. **Summarize all three months into a single quarterly summary. Do not retain individual months as separate keys. The summary should combine key themes, tone, response trends, and follow-up actions from all months within the quarter.
                     2. **Return only the JSON object** with no explanations or additional text.
-                    3. JSON Structure should be: {"year": {"Q1": "quarterly summary", "Q2": "quarterly summary", ...}}
+                    3. JSON Structure should be: {"year": {"Q1": {"summary":"quarterly summary","count":"total count of all three months of that quarter from JSON file by summing up the count i.e 200","startdate":"start date of the Quarter"}, "Q2": {"summary":"quarterly summary","count":"total count of all three months of that quarter from JSON file by summing up the count ex:- 200 as total count","startdate":"start date of the Quarter"}, ...}}
                     4. **Ensure JSON is in minified format** (i.e., no extra spaces, line breaks, or special characters).
                     5. The response **must be directly usable with "JSON.parse(response)"**.`);
                                   
@@ -961,10 +977,12 @@ module.exports = async function (fastify, opts) {
             logger.info(`Year: ${year}`);
             for (const month in summaries[year]) {
                 logger.info(`Month: ${month}`);
-                logger.info(`Summary:\n${summaries[year][month]}\n`);
+                logger.info(`Summary:\n${summaries[year][month].summary}\n`);
                 let FYQuartervalue=(summaryCategory=='Quarterly')?month:'';
                 let motnhValue=(summaryCategory=='Monthly')?month:'';
-                let summaryValue=summaries[year][month];
+                let summaryValue=summaries[year][month].summary;
+                let startdate=summaries[year][month].startdate;
+                let count=summaries[year][month].count;
                  uow.registerCreate({
                     type: 'Timeline_Summary__c',
                     fields: {
@@ -973,7 +991,9 @@ module.exports = async function (fastify, opts) {
                         Year__c : year,
                         Summary_Category__c : summaryCategory,
                         Summary_Details__c : summaryValue,
-                        FY_Quarter__c : FYQuartervalue
+                        FY_Quarter__c : FYQuartervalue,
+                        Month_Date__c:startdate,
+                        Number_of_Records__c:count
                     }
                 });
             }
