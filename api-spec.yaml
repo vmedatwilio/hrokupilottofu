@@ -218,7 +218,7 @@ paths:
         and summarise the activites and break down into Monthly and Quarterly.
       requestBody:
         required: true
-        content:git
+        content:
           application/json:
             schema:
               type: object
@@ -232,7 +232,7 @@ paths:
                 userPrompt:
                   type: string
                 summaryMap:
-                  type: string     
+                  type: string   
                 callbackUrl:
                   type: string
       responses:
