@@ -230,8 +230,6 @@ paths:
                 assisstantPrompt:
                   type: string
                 userPrompt:
-                  type: string
-                summaryMap:
                   type: string   
                 callbackUrl:
                   type: string
